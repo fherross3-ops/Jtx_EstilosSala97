@@ -262,6 +262,14 @@ let allData = {};
 let currentFecha = null;
 let charts = {};
 
+
+// ✅ ARCHIVOS CSV PRE-CARGADOS (LOS QUE ESTÁN EN EL REPOSITORIO)
+const ARCHIVOS_PRECARGADOS = [
+  'Sala97_Estilos_Produccion - Tejeduria 29-06-2026.csv',
+  'Sala97_Estilos_Produccion - Tejeduria 01-07-2026.csv',
+  'Sala97_Estilos_Produccion - Tejeduria 02-07-2026.csv',
+  'Sala97_Estilos_Produccion - Tejeduria 30-06-2026.csv'
+];
 const ORDEN_PRUEBA29 = [
   'Fecha','Día','Turno','Actividad','Telar','TELAR_sistema_no_usar',
   'Operador','Referencia','Estilo','PPP','Metros tejidos','Lote','Cad.',
@@ -409,6 +417,58 @@ dropZone.addEventListener('drop', e => {
   handleFiles(e.dataTransfer.files);
 });
 fileInput.addEventListener('change', e => handleFiles(e.target.files));
+
+// ✅ FUNCIÓN PARA CARGAR ARCHIVOS DESDE NETLIFY
+async function cargarArchivosPrecargados() {
+  if (ARCHIVOS_PRECARGADOS.length === 0) return;
+  
+  showStatus(`⏳ Cargando ${ARCHIVOS_PRECARGADOS.length} archivo(s) desde el servidor...`, 'info');
+  
+  try {
+    const resultados = [];
+    for (const nombreArchivo of ARCHIVOS_PRECARGADOS) {
+      try {
+        // Intenta cargar el archivo desde la misma ubicación que index.html
+        const response = await fetch(nombreArchivo);
+        if (!response.ok) {
+          console.warn(`⚠️ No se pudo cargar ${nombreArchivo}: ${response.status}`);
+          continue;
+        }
+        
+        // Lee el archivo como texto (CSV)
+        const texto = await response.text();
+        // Convierte el texto CSV a un objeto que XLSX pueda entender
+        const workbook = XLSX.read(texto, { type: 'string', raw: true });
+        const sheetName = workbook.SheetNames[0];
+        const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: '', raw: true });
+        const rowsValidas = rows.filter(r => Object.keys(r).some(c => String(r[c] || '').trim() !== ''));
+        
+        if (rowsValidas.length > 0) {
+          resultados.push({ fileName: nombreArchivo, rows: rowsValidas });
+          console.log(`✅ Cargado ${nombreArchivo} (${rowsValidas.length} filas)`);
+        } else {
+          console.warn(`⚠️ ${nombreArchivo} está vacío o no tiene datos`);
+        }
+      } catch (err) {
+        console.error(`❌ Error cargando ${nombreArchivo}:`, err);
+      }
+    }
+    
+    if (resultados.length === 0) {
+      showStatus(`⚠️ No se pudieron cargar los archivos. Verifica que existan en el repositorio.`, 'error');
+      return;
+    }
+    
+    // Procesa los archivos cargados
+    const allRows = resultados.flatMap(r => r.rows);
+    procesarMultiDia(allRows, resultados.map(r => r.fileName).join(', '));
+    
+  } catch (err) {
+    showStatus(`❌ Error al cargar archivos: ${err.message}`, 'error');
+    console.error(err);
+  }
+}
+
 
 function handleFiles(files) {
   if (!files.length) return;
@@ -1002,6 +1062,11 @@ document.querySelectorAll('.tab').forEach(tab => {
 
 // ---------- INIT ----------
 initTheme();
+
+// ✅ CARGA AUTOMÁTICA AL INICIAR
+setTimeout(() => {
+  cargarArchivosPrecargados();
+}, 500); // Pequeño retraso para que la página cargue completamente
 </script>
 </body>
 </html>
