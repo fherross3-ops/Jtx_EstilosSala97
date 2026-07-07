@@ -263,13 +263,21 @@ let currentFecha = null;
 let charts = {};
 
 
-// ✅ ARCHIVOS CSV PRE-CARGADOS (LOS QUE ESTÁN EN EL REPOSITORIO)
-const ARCHIVOS_PRECARGADOS = [
-  'Sala97_Estilos_Produccion - Tejeduria 29-06-2026.csv',
-  'Sala97_Estilos_Produccion - Tejeduria 01-07-2026.csv',
-  'Sala97_Estilos_Produccion - Tejeduria 02-07-2026.csv',
-  'Sala97_Estilos_Produccion - Tejeduria 30-06-2026.csv'
-];
+// ✅ CARGA AUTOMÁTICA: GENERA NOMBRES DE ARCHIVOS DINÁMICAMENTE
+const PREFIJO = 'Sala97_Estilos_Produccion - Tejeduria';
+const DIAS_A_BUSCAR = 30; // Buscará archivos de los últimos 30 días
+const ARCHIVOS_PRECARGADOS = [];
+
+// Genera nombres para los últimos DIAS_A_BUSCAR días
+for (let i = 0; i < DIAS_A_BUSCAR; i++) {
+    const fecha = new Date();
+    fecha.setDate(fecha.getDate() - i);
+    const dia = String(fecha.getDate()).padStart(2, '0');
+    const mes = String(fecha.getMonth() + 1).padStart(2, '0');
+    const anio = fecha.getFullYear();
+    const nombre = `${PREFIJO} ${dia}-${mes}-${anio}.csv`;
+    ARCHIVOS_PRECARGADOS.push(nombre);
+}
 const ORDEN_PRUEBA29 = [
   'Fecha','Día','Turno','Actividad','Telar','TELAR_sistema_no_usar',
   'Operador','Referencia','Estilo','PPP','Metros tejidos','Lote','Cad.',
