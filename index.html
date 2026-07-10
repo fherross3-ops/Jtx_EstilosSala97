@@ -258,7 +258,7 @@ tr:hover td { background: var(--glass); }
 
 <script>
 // ============================================================
-// TEJEDURÍA JEANTEX — CÓDIGO COMPLETO CORREGIDO
+// TEJEDURÍA JEANTEX — CON CARGA AUTOMÁTICA DESDE GITHUB
 // ============================================================
 Chart.register(ChartDataLabels);
 
@@ -268,12 +268,129 @@ let allData = {};
 let currentFecha = null;
 let charts = {};
 
-const ARCHIVOS_PRECARGADOS = [
-  'Sala97_Estilos_Produccion - Tejeduria 29-06-2026.csv',
-  'Sala97_Estilos_Produccion - Tejeduria 01-07-2026.csv',
-  'Sala97_Estilos_Produccion - Tejeduria 02-07-2026.csv',
-  'Sala97_Estilos_Produccion - Tejeduria 30-06-2026.csv'
-];
+// ============================================================
+// 📂 CONFIGURACIÓN DE GITHUB PARA CARGA AUTOMÁTICA
+// ============================================================
+const USUARIO_GITHUB = 'fherross3-ops';
+const REPOSITORIO_GITHUB = 'estilos-sala97';
+const RAMA_GITHUB = 'main';
+
+// ============================================================
+// 🔍 DETECTAR ARCHIVOS CSV EN EL REPOSITORIO DE GITHUB
+// ============================================================
+async function obtenerListaArchivosCSV() {
+  try {
+    // Usar la API de GitHub para listar los archivos del repositorio
+    const url = 'https://api.github.com/repos/' + USUARIO_GITHUB + '/' + REPOSITORIO_GITHUB + '/contents/';
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      console.warn('⚠️ No se pudo obtener la lista de archivos desde GitHub API');
+      return [];
+    }
+    
+    const archivos = await response.json();
+    const csvs = archivos
+      .filter(function(archivo) {
+        return archivo.name.endsWith('.csv') && archivo.name.includes('Tejeduria');
+      })
+      .map(function(archivo) {
+        return archivo.name;
+      });
+    
+    console.log('📂 Archivos CSV encontrados en GitHub:', csvs);
+    return csvs;
+  } catch (error) {
+    console.warn('⚠️ Error al obtener lista de archivos desde GitHub API:', error);
+    return [];
+  }
+}
+
+// ============================================================
+// 🚀 GENERAR URLs DE GITHUB RAW PARA CADA ARCHIVO CSV
+// ============================================================
+function generarURLsGitHub(nombresArchivos) {
+  return nombresArchivos.map(function(nombre) {
+    return 'https://raw.githubusercontent.com/' + USUARIO_GITHUB + '/' + REPOSITORIO_GITHUB + '/' + RAMA_GITHUB + '/' + encodeURIComponent(nombre);
+  });
+}
+
+// ============================================================
+// 📥 CARGAR ARCHIVOS DESDE GITHUB DE FORMA AUTOMÁTICA
+// ============================================================
+async function cargarArchivosPrecargados() {
+  showStatus('📂 Buscando archivos CSV en GitHub...', 'info');
+  
+  try {
+    // Obtener la lista de archivos CSV
+    var nombresCSV = await obtenerListaArchivosCSV();
+    
+    if (nombresCSV.length === 0) {
+      showStatus('⚠️ No se encontraron archivos CSV en el repositorio. Arrástralos manualmente.', 'error');
+      return;
+    }
+    
+    showStatus('📥 Cargando ' + nombresCSV.length + ' archivo(s) desde GitHub...', 'info');
+    
+    var archivosCargados = 0;
+    var todosLosResultados = [];
+    
+    for (var i = 0; i < nombresCSV.length; i++) {
+      var nombreArchivo = nombresCSV[i];
+      var urlRaw = 'https://raw.githubusercontent.com/' + USUARIO_GITHUB + '/' + REPOSITORIO_GITHUB + '/' + RAMA_GITHUB + '/' + encodeURIComponent(nombreArchivo);
+      
+      try {
+        console.log('📥 Cargando:', nombreArchivo);
+        var response = await fetch(urlRaw);
+        
+        if (!response.ok) {
+          console.warn('⚠️ No se pudo cargar', nombreArchivo, response.status);
+          continue;
+        }
+        
+        var texto = await response.text();
+        var workbook = XLSX.read(texto, { type: 'string', raw: true });
+        var sheetName = workbook.SheetNames[0];
+        var rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: '', raw: true });
+        
+        var rowsValidas = rows.filter(function(r) {
+          return Object.keys(r).some(function(c) {
+            return String(r[c] || '').trim() !== '';
+          });
+        });
+        
+        if (rowsValidas.length > 0) {
+          todosLosResultados.push({ fileName: nombreArchivo, rows: rowsValidas });
+          archivosCargados++;
+          console.log('✅ Cargado', nombreArchivo, rowsValidas.length, 'filas');
+        } else {
+          console.warn('⚠️', nombreArchivo, 'está vacío o no tiene datos');
+        }
+      } catch (err) {
+        console.error('❌ Error cargando', nombreArchivo, err);
+      }
+    }
+    
+    if (archivosCargados === 0) {
+      showStatus('⚠️ No se pudieron cargar los archivos desde GitHub. Arrástralos manualmente.', 'error');
+      return;
+    }
+    
+    // Procesar todos los datos
+    var allRows = [];
+    for (var j = 0; j < todosLosResultados.length; j++) {
+      allRows = allRows.concat(todosLosResultados[j].rows);
+    }
+    var nombres = todosLosResultados.map(function(r) { return r.fileName; }).join(', ');
+    
+    showStatus('✅ Cargados ' + archivosCargados + ' archivo(s) desde GitHub. Procesando...', 'info');
+    procesarMultiDia(allRows, nombres);
+    
+  } catch (err) {
+    showStatus('❌ Error al cargar archivos: ' + err.message + '. Arrástralos manualmente.', 'error');
+    console.error(err);
+  }
+}
 
 const ORDEN_PRUEBA29 = [
   'Fecha','Día','Turno','Actividad','Telar','TELAR_sistema_no_usar',
@@ -315,7 +432,7 @@ function obtenerColumna(row, cols, nombre) {
 }
 
 // ============================================================
-// FUNCIONES DE FECHA - ORDEN CORRECTO
+// FUNCIONES DE FECHA
 // ============================================================
 
 function formatearFechaEstandar(date) {
@@ -330,7 +447,6 @@ function parsearFechaUniversal(valor) {
   if (!valor) return null;
   if (valor instanceof Date) return isNaN(valor.getTime()) ? null : valor;
 
-  // Manejar números de Excel
   let valorNumerico = parseFloat(String(valor).replace(',', '.'));
   if (!isNaN(valorNumerico) && valorNumerico > 40000 && valorNumerico < 60000) {
     try {
@@ -346,7 +462,6 @@ function parsearFechaUniversal(valor) {
     }
   }
 
-  // Formato dd/mm/yyyy
   const s = String(valor).trim().replace(/-/g, '/');
   const match = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/);
   if (match) {
@@ -427,50 +542,6 @@ dropZone.addEventListener('drop', function(e) {
   handleFiles(e.dataTransfer.files);
 });
 fileInput.addEventListener('change', function(e) { handleFiles(e.target.files); });
-
-async function cargarArchivosPrecargados() {
-  if (ARCHIVOS_PRECARGADOS.length === 0) return;
-  showStatus('⏳ Cargando archivos desde el servidor...', 'info');
-  try {
-    var resultados = [];
-    for (var i = 0; i < ARCHIVOS_PRECARGADOS.length; i++) {
-      var nombreArchivo = ARCHIVOS_PRECARGADOS[i];
-      try {
-        var response = await fetch(nombreArchivo);
-        if (!response.ok) {
-          console.warn('⚠️ No se pudo cargar', nombreArchivo, response.status);
-          continue;
-        }
-        var texto = await response.text();
-        var workbook = XLSX.read(texto, { type: 'string', raw: true });
-        var sheetName = workbook.SheetNames[0];
-        var rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: '', raw: true });
-        var rowsValidas = rows.filter(function(r) {
-          return Object.keys(r).some(function(c) { return String(r[c] || '').trim() !== ''; });
-        });
-        if (rowsValidas.length > 0) {
-          resultados.push({ fileName: nombreArchivo, rows: rowsValidas });
-          console.log('✅ Cargado', nombreArchivo, rowsValidas.length, 'filas');
-        }
-      } catch (err) {
-        console.error('❌ Error cargando', nombreArchivo, err);
-      }
-    }
-    if (resultados.length === 0) {
-      showStatus('⚠️ No se pudieron cargar los archivos. Arrástralos manualmente.', 'error');
-      return;
-    }
-    var allRows = [];
-    for (var j = 0; j < resultados.length; j++) {
-      allRows = allRows.concat(resultados[j].rows);
-    }
-    var nombres = resultados.map(function(r) { return r.fileName; }).join(', ');
-    procesarMultiDia(allRows, nombres);
-  } catch (err) {
-    showStatus('❌ Error al cargar archivos: ' + err.message, 'error');
-    console.error(err);
-  }
-}
 
 function handleFiles(files) {
   if (!files.length) return;
@@ -575,13 +646,11 @@ function procesarMultiDia(rows, fileName) {
       return mapped;
     });
 
-    // DEPURACIÓN
     console.log('🔍 PRIMEROS 5 REGISTROS:');
     datos.slice(0, 5).forEach(function(d, i) {
       console.log('  ' + (i+1) + '. Fecha: "' + d['Fecha'] + '", _fechaObj:', d['_fechaObj']);
     });
 
-    // OBTENER FECHAS ÚNICAS
     var fechasMap = new Map();
     datos.forEach(function(d) {
       if (d['_fechaObj'] && !isNaN(d['_fechaObj'].getTime())) {
@@ -1172,6 +1241,7 @@ document.querySelectorAll('.tab').forEach(function(tab) {
 // ---------- INIT ----------
 initTheme();
 
+// ✅ CARGA AUTOMÁTICA DESDE GITHUB
 setTimeout(function() {
   cargarArchivosPrecargados();
 }, 500);
