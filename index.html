@@ -322,33 +322,53 @@ async function cargarArchivosPrecargados() {
   showStatus('📂 Buscando archivos CSV en GitHub...', 'info');
   
   try {
-    // Obtener la lista de archivos CSV
-    var nombresCSV = await obtenerListaArchivosCSV();
+    // ✅ OBTENER LISTA DE ARCHIVOS DESDE GITHUB API
+    const url = 'https://api.github.com/repos/fherross3-ops/Jtx_EstilosSala97/contents/';
+    const response = await fetch(url);
     
-    if (nombresCSV.length === 0) {
-      showStatus('⚠️ No se encontraron archivos CSV en el repositorio. Arrástralos manualmente.', 'error');
+    if (!response.ok) {
+      showStatus('⚠️ No se pudo obtener la lista de archivos. Arrástralos manualmente.', 'error');
       return;
     }
     
-    showStatus('📥 Cargando ' + nombresCSV.length + ' archivo(s) desde GitHub...', 'info');
+    const archivos = await response.json();
     
-    var archivosCargados = 0;
+    // Filtrar solo archivos CSV que contengan "Tejeduria"
+    const csvs = archivos
+      .filter(function(archivo) {
+        return archivo.name.endsWith('.csv') && archivo.name.includes('Tejeduria');
+      })
+      .map(function(archivo) {
+        return archivo.name;
+      });
+    
+    console.log('📂 Archivos CSV encontrados:', csvs);
+    
+    if (csvs.length === 0) {
+      showStatus('⚠️ No se encontraron archivos CSV en el repositorio.', 'error');
+      return;
+    }
+    
+    showStatus('📥 Cargando ' + csvs.length + ' archivo(s) desde GitHub...', 'info');
+    
+    // Cargar cada archivo
     var todosLosResultados = [];
+    var archivosCargados = 0;
     
-    for (var i = 0; i < nombresCSV.length; i++) {
-      var nombreArchivo = nombresCSV[i];
-      var urlRaw = 'https://raw.githubusercontent.com/' + USUARIO_GITHUB + '/' + REPOSITORIO_GITHUB + '/' + RAMA_GITHUB + '/' + encodeURIComponent(nombreArchivo);
+    for (var i = 0; i < csvs.length; i++) {
+      var nombre = csvs[i];
+      var urlRaw = 'https://raw.githubusercontent.com/fherross3-ops/Jtx_EstilosSala97/main/' + encodeURIComponent(nombre);
       
       try {
-        console.log('📥 Cargando:', nombreArchivo);
-        var response = await fetch(urlRaw);
+        console.log('📥 Cargando:', nombre);
+        var responseFile = await fetch(urlRaw);
         
-        if (!response.ok) {
-          console.warn('⚠️ No se pudo cargar', nombreArchivo, response.status);
+        if (!responseFile.ok) {
+          console.warn('⚠️ No se pudo cargar', nombre, responseFile.status);
           continue;
         }
         
-        var texto = await response.text();
+        var texto = await responseFile.text();
         var workbook = XLSX.read(texto, { type: 'string', raw: true });
         var sheetName = workbook.SheetNames[0];
         var rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: '', raw: true });
@@ -360,17 +380,37 @@ async function cargarArchivosPrecargados() {
         });
         
         if (rowsValidas.length > 0) {
-          todosLosResultados.push({ fileName: nombreArchivo, rows: rowsValidas });
+          todosLosResultados.push({ fileName: nombre, rows: rowsValidas });
           archivosCargados++;
-          console.log('✅ Cargado', nombreArchivo, rowsValidas.length, 'filas');
+          console.log('✅ Cargado', nombre, rowsValidas.length, 'filas');
         } else {
-          console.warn('⚠️', nombreArchivo, 'está vacío o no tiene datos');
+          console.warn('⚠️', nombre, 'está vacío o no tiene datos');
         }
       } catch (err) {
-        console.error('❌ Error cargando', nombreArchivo, err);
+        console.error('❌ Error cargando', nombre, err);
       }
     }
     
+    if (archivosCargados === 0) {
+      showStatus('⚠️ No se pudieron cargar los archivos. Arrástralos manualmente.', 'error');
+      return;
+    }
+    
+    // Procesar todos los datos
+    var allRows = [];
+    for (var j = 0; j < todosLosResultados.length; j++) {
+      allRows = allRows.concat(todosLosResultados[j].rows);
+    }
+    var nombres = todosLosResultados.map(function(r) { return r.fileName; }).join(', ');
+    
+    showStatus('✅ Cargados ' + archivosCargados + ' archivo(s) desde GitHub. Procesando...', 'info');
+    procesarMultiDia(allRows, nombres);
+    
+  } catch (err) {
+    showStatus('❌ Error al cargar archivos: ' + err.message, 'error');
+    console.error('❌ Error:', err);
+  }
+}    
     if (archivosCargados === 0) {
       showStatus('⚠️ No se pudieron cargar los archivos desde GitHub. Arrástralos manualmente.', 'error');
       return;
