@@ -1,0 +1,11 @@
+# Configuración para que Netlify sirva archivos CSV
+
+[[headers]]
+  for = "/*.csv"
+  [headers.values]
+    Content-Type = "text/csv"
+
+[[headers]]
+  for = "/*.csv"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
