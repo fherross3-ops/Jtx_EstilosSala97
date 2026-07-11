@@ -276,46 +276,6 @@ const REPOSITORIO_GITHUB = 'Jtx_EstilosSala97';
 const RAMA_GITHUB = 'main';
 
 // ============================================================
-// 🔍 DETECTAR ARCHIVOS CSV EN EL REPOSITORIO DE GITHUB
-// ============================================================
-async function obtenerListaArchivosCSV() {
-  try {
-    // Usar la API de GitHub para listar los archivos del repositorio
-    const url = 'https://api.github.com/repos/' + USUARIO_GITHUB + '/' + REPOSITORIO_GITHUB + '/contents/';
-    const response = await fetch(url);
-    
-    if (!response.ok) {
-      console.warn('⚠️ No se pudo obtener la lista de archivos desde GitHub API');
-      return [];
-    }
-    
-    const archivos = await response.json();
-    const csvs = archivos
-      .filter(function(archivo) {
-        return archivo.name.endsWith('.csv') && archivo.name.includes('Tejeduria');
-      })
-      .map(function(archivo) {
-        return archivo.name;
-      });
-    
-    console.log('📂 Archivos CSV encontrados en GitHub:', csvs);
-    return csvs;
-  } catch (error) {
-    console.warn('⚠️ Error al obtener lista de archivos desde GitHub API:', error);
-    return [];
-  }
-}
-
-// ============================================================
-// 🚀 GENERAR URLs DE GITHUB RAW PARA CADA ARCHIVO CSV
-// ============================================================
-function generarURLsGitHub(nombresArchivos) {
-  return nombresArchivos.map(function(nombre) {
-    return 'https://raw.githubusercontent.com/' + USUARIO_GITHUB + '/' + REPOSITORIO_GITHUB + '/' + RAMA_GITHUB + '/' + encodeURIComponent(nombre);
-  });
-}
-
-// ============================================================
 // 📥 CARGAR ARCHIVOS DESDE GITHUB DE FORMA AUTOMÁTICA
 // ============================================================
 async function cargarArchivosPrecargados() {
@@ -409,26 +369,6 @@ async function cargarArchivosPrecargados() {
   } catch (err) {
     showStatus('❌ Error al cargar archivos: ' + err.message, 'error');
     console.error('❌ Error:', err);
-  }
-}    
-    if (archivosCargados === 0) {
-      showStatus('⚠️ No se pudieron cargar los archivos desde GitHub. Arrástralos manualmente.', 'error');
-      return;
-    }
-    
-    // Procesar todos los datos
-    var allRows = [];
-    for (var j = 0; j < todosLosResultados.length; j++) {
-      allRows = allRows.concat(todosLosResultados[j].rows);
-    }
-    var nombres = todosLosResultados.map(function(r) { return r.fileName; }).join(', ');
-    
-    showStatus('✅ Cargados ' + archivosCargados + ' archivo(s) desde GitHub. Procesando...', 'info');
-    procesarMultiDia(allRows, nombres);
-    
-  } catch (err) {
-    showStatus('❌ Error al cargar archivos: ' + err.message + '. Arrástralos manualmente.', 'error');
-    console.error(err);
   }
 }
 
