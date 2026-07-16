@@ -1363,5 +1363,72 @@ setTimeout(function() {
   cargarArchivosPrecargados();
 }, 500);
 </script>
+
+<!-- ========================================== -->
+<!-- FORMULARIO DE EJEMPLO PARA NETLIFY FORMS   -->
+<!-- ========================================== -->
+<section id="formulario-ejemplo" style="max-width: 600px; margin: 50px auto; padding: 30px; background: #f9f9f9; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); font-family: Arial, sans-serif;">
+  
+  <h2 style="color: #333; text-align: center; margin-bottom: 25px;">📝 Aporta tu conocimiento</h2>
+  <p style="text-align: center; color: #666; margin-bottom: 25px;">Comparte información valiosa para enriquecer este contenido</p>
+  
+  <!-- FORMULARIO - El atributo data-netlify="true" es clave -->
+  <form name="feedback-aportes" method="POST" data-netlify="true" 
+        style="display: flex; flex-direction: column; gap: 18px;">
+    
+    <!-- Campo oculto OBLIGATORIO para que Netlify identifique el formulario -->
+    <input type="hidden" name="form-name" value="feedback-aportes" />
+    
+    <!-- Campo: Nombre -->
+    <div>
+      <label for="nombre" style="display: block; margin-bottom: 5px; font-weight: 600; color: #555;">Tu nombre:</label>
+      <input type="text" id="nombre" name="nombre" placeholder="Ej: Juan Pérez" 
+             style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 6px; font-size: 16px; box-sizing: border-box;" />
+    </div>
+    
+    <!-- Campo: Email (opcional) -->
+    <div>
+      <label for="email" style="display: block; margin-bottom: 5px; font-weight: 600; color: #555;">Correo electrónico (opcional):</label>
+      <input type="email" id="email" name="email" placeholder="ejemplo@correo.com" 
+             style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 6px; font-size: 16px; box-sizing: border-box;" />
+    </div>
+    
+    <!-- Campo: Comentario/Información (el principal) -->
+    <div>
+      <label for="informacion" style="display: block; margin-bottom: 5px; font-weight: 600; color: #555;">Comentario o información:</label>
+      <textarea id="informacion" name="informacion" rows="5" 
+                placeholder="Escribe aquí tus aportes, correcciones o información adicional..."
+                style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 6px; font-size: 16px; font-family: Arial, sans-serif; box-sizing: border-box; resize: vertical;"></textarea>
+    </div>
+    
+    <!-- Campo: Categoría (para organizar mejor los aportes) -->
+    <div>
+      <label for="categoria" style="display: block; margin-bottom: 5px; font-weight: 600; color: #555;">Categoría del aporte:</label>
+      <select id="categoria" name="categoria" 
+              style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 6px; font-size: 16px; box-sizing: border-box;">
+        <option value="correccion">Corrección de datos</option>
+        <option value="nueva-informacion">Nueva información</option>
+        <option value="sugerencia">Sugerencia de mejora</option>
+        <option value="pregunta">Pregunta</option>
+        <option value="otro">Otro</option>
+      </select>
+    </div>
+    
+    <!-- Botón de envío -->
+    <button type="submit" 
+            style="background: #2d6a4f; color: white; padding: 14px 28px; border: none; border-radius: 6px; font-size: 18px; font-weight: bold; cursor: pointer; transition: background 0.3s ease; margin-top: 10px;">
+      📤 Enviar aporte
+    </button>
+    
+    <!-- Mensaje de confirmación (se muestra después de enviar) -->
+    <div id="mensaje-confirmacion" style="display: none; background: #d4edda; color: #155724; padding: 12px; border-radius: 6px; text-align: center; font-weight: 500;">
+      ✅ ¡Gracias por tu aporte! Tu información ha sido recibida.
+    </div>
+    
+  </form>
+</section>
+
+
+  
 </body>
 </html>
