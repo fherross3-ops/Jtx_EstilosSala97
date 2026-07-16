@@ -1364,70 +1364,263 @@ setTimeout(function() {
 }, 500);
 </script>
 
-<!-- ========================================== -->
-<!-- FORMULARIO DE EJEMPLO PARA NETLIFY FORMS   -->
-<!-- ========================================== -->
-<section id="formulario-ejemplo" style="max-width: 600px; margin: 50px auto; padding: 30px; background: #f9f9f9; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); font-family: Arial, sans-serif;">
+<!-- ========================================================== -->
+<!-- FORMULARIO: APORTES MÚLTIPLES DE VALOR AGREGADO - TELARES  -->
+<!-- ========================================================== -->
+<section id="formulario-aportes" style="max-width: 900px; margin: 40px auto; padding: 30px; background: linear-gradient(135deg, #f8f5f0 0%, #efe9e0 100%); border-radius: 16px; box-shadow: 0 8px 30px rgba(0,0,0,0.12); font-family: 'Segoe UI', Arial, sans-serif; border: 1px solid #e0d6c8;">
   
-  <h2 style="color: #333; text-align: center; margin-bottom: 25px;">📝 Aporta tu conocimiento</h2>
-  <p style="text-align: center; color: #666; margin-bottom: 25px;">Comparte información valiosa para enriquecer este contenido</p>
+  <!-- TÍTULO -->
+  <div style="text-align: center; margin-bottom: 25px; border-bottom: 3px solid #8b6f4c; padding-bottom: 15px;">
+    <h2 style="color: #4a3520; font-size: 26px; margin: 0; letter-spacing: 1px;">🏺 Aportes de Valor Agregado</h2>
+    <p style="color: #7a654f; font-size: 14px; margin: 5px 0 0 0;">Comparte tu conocimiento sobre telares, lotes, estilos y clases</p>
+    <p style="color: #8b6f4c; font-size: 13px; font-weight: 500; margin: 3px 0 0 0;">💡 Puedes agregar múltiples líneas de aportes en un solo envío</p>
+  </div>
   
-  <!-- FORMULARIO - El atributo data-netlify="true" es clave -->
-  <form name="feedback-aportes" method="POST" data-netlify="true" 
-        style="display: flex; flex-direction: column; gap: 18px;">
+  <!-- FORMULARIO PRINCIPAL -->
+  <form name="aportes-telares-multiples" method="POST" data-netlify="true" 
+        style="display: flex; flex-direction: column; gap: 15px;">
     
-    <!-- Campo oculto OBLIGATORIO para que Netlify identifique el formulario -->
-    <input type="hidden" name="form-name" value="feedback-aportes" />
+    <!-- Campo oculto OBLIGATORIO para Netlify -->
+    <input type="hidden" name="form-name" value="aportes-telares-multiples" />
     
-    <!-- Campo: Nombre -->
+    <!-- ======================================== -->
+    <!-- 1. NOMBRE DEL APORTANTE                  -->
+    <!-- ======================================== -->
     <div>
-      <label for="nombre" style="display: block; margin-bottom: 5px; font-weight: 600; color: #555;">Tu nombre:</label>
-      <input type="text" id="nombre" name="nombre" placeholder="Ej: Juan Pérez" 
-             style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 6px; font-size: 16px; box-sizing: border-box;" />
+      <label for="nombre-aportante" style="display: block; font-weight: 600; color: #4a3520; margin-bottom: 4px; font-size: 14px;">
+        👤 Nombre del Aportante <span style="color: #a0522d;">*</span>
+      </label>
+      <input type="text" id="nombre-aportante" name="nombre-aportante" 
+             placeholder="Ej: María González" required
+             style="width: 100%; padding: 10px 12px; border: 2px solid #d4c8b8; border-radius: 8px; font-size: 15px; background: white; box-sizing: border-box;" />
     </div>
     
-    <!-- Campo: Email (opcional) -->
-    <div>
-      <label for="email" style="display: block; margin-bottom: 5px; font-weight: 600; color: #555;">Correo electrónico (opcional):</label>
-      <input type="email" id="email" name="email" placeholder="ejemplo@correo.com" 
-             style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 6px; font-size: 16px; box-sizing: border-box;" />
+    <!-- ======================================== -->
+    <!-- 2. TABLA DE APORTES MÚLTIPLES            -->
+    <!-- ======================================== -->
+    <div style="background: white; border-radius: 10px; padding: 20px; border: 2px solid #d4c8b8; overflow-x: auto;">
+      
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <h3 style="color: #4a3520; font-size: 16px; margin: 0;">📋 Líneas de Aportes</h3>
+        <button type="button" id="agregar-fila" 
+                style="background: #8b6f4c; color: white; border: none; padding: 6px 16px; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; transition: background 0.3s;"
+                onmouseover="this.style.background='#6b4c3b'" onmouseout="this.style.background='#8b6f4c'">
+          ➕ Agregar Línea
+        </button>
+      </div>
+      
+      <!-- CONTENEDOR DE FILAS DE APORTES -->
+      <div id="contenedor-filas">
+        
+        <!-- FILA 1 (por defecto) -->
+        <div class="fila-aporte" style="display: grid; grid-template-columns: 70px 100px 1fr 1fr 1.8fr; gap: 8px; margin-bottom: 10px; padding: 10px; background: #faf8f5; border-radius: 8px; align-items: center;">
+          
+          <!-- Telar (3 dígitos: 001-113) -->
+          <div>
+            <label style="font-size: 11px; font-weight: 600; color: #4a3520; display: block; margin-bottom: 2px;">Telar</label>
+            <input type="number" name="telar[]" min="1" max="113" placeholder="001" required
+                   style="width: 100%; padding: 6px 4px; border: 2px solid #d4c8b8; border-radius: 6px; font-size: 14px; text-align: center; box-sizing: border-box;" />
+          </div>
+          
+          <!-- Lote (8 dígitos alfanuméricos) -->
+          <div>
+            <label style="font-size: 11px; font-weight: 600; color: #4a3520; display: block; margin-bottom: 2px;">Lote</label>
+            <input type="text" name="lote[]" maxlength="8" placeholder="LOTE-001" required
+                   style="width: 100%; padding: 6px 4px; border: 2px solid #d4c8b8; border-radius: 6px; font-size: 14px; text-align: center; box-sizing: border-box; text-transform: uppercase;" />
+          </div>
+          
+          <!-- Estilo (desplegable) -->
+          <div>
+            <label style="font-size: 11px; font-weight: 600; color: #4a3520; display: block; margin-bottom: 2px;">Estilo</label>
+            <select name="estilo[]" required style="width: 100%; padding: 6px 4px; border: 2px solid #d4c8b8; border-radius: 6px; font-size: 14px; background: white; box-sizing: border-box;">
+              <option value="">Seleccionar</option>
+              <option value="Andino">Andino</option>
+              <option value="Colonial">Colonial</option>
+              <option value="Moderno">Moderno</option>
+              <option value="Tradicional">Tradicional</option>
+              <option value="Contemporáneo">Contemporáneo</option>
+              <option value="Étnico">Étnico</option>
+              <option value="Minimalista">Minimalista</option>
+              <option value="Rústico">Rústico</option>
+            </select>
+          </div>
+          
+          <!-- Clase (desplegable) -->
+          <div>
+            <label style="font-size: 11px; font-weight: 600; color: #4a3520; display: block; margin-bottom: 2px;">Clase</label>
+            <select name="clase[]" required style="width: 100%; padding: 6px 4px; border: 2px solid #d4c8b8; border-radius: 6px; font-size: 14px; background: white; box-sizing: border-box;">
+              <option value="">Seleccionar</option>
+              <option value="Calidad">Calidad</option>
+              <option value="Mantenimiento">Mantenimiento</option>
+              <option value="Producción">Producción</option>
+              <option value="Planificación">Planificación</option>
+              <option value="Auditoría">Auditoría</option>
+            </select>
+          </div>
+          
+          <!-- Descripción del Aporte -->
+          <div>
+            <label style="font-size: 11px; font-weight: 600; color: #4a3520; display: block; margin-bottom: 2px;">Descripción</label>
+            <input type="text" name="descripcion[]" placeholder="Ej: Técnica de tejido, material, observación..." required
+                   style="width: 100%; padding: 6px 8px; border: 2px solid #d4c8b8; border-radius: 6px; font-size: 14px; box-sizing: border-box;" />
+          </div>
+          
+          <!-- Botón eliminar fila -->
+          <div style="text-align: center;">
+            <button type="button" class="eliminar-fila" 
+                    style="background: #dc3545; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; font-size: 14px; font-weight: bold; cursor: pointer; line-height: 1; transition: background 0.3s;"
+                    onmouseover="this.style.background='#c82333'" onmouseout="this.style.background='#dc3545'">
+              ✕
+            </button>
+          </div>
+          
+        </div>
+        
+      </div>
+      <!-- FIN contenedor-filas -->
+      
+      <p style="font-size: 12px; color: #7a654f; margin: 8px 0 0 0; text-align: right;">
+        ⚡ Telar: 1-113 | Lote: 8 caracteres alfanuméricos
+      </p>
+      
     </div>
+    <!-- FIN tabla de aportes -->
     
-    <!-- Campo: Comentario/Información (el principal) -->
-    <div>
-      <label for="informacion" style="display: block; margin-bottom: 5px; font-weight: 600; color: #555;">Comentario o información:</label>
-      <textarea id="informacion" name="informacion" rows="5" 
-                placeholder="Escribe aquí tus aportes, correcciones o información adicional..."
-                style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 6px; font-size: 16px; font-family: Arial, sans-serif; box-sizing: border-box; resize: vertical;"></textarea>
-    </div>
-    
-    <!-- Campo: Categoría (para organizar mejor los aportes) -->
-    <div>
-      <label for="categoria" style="display: block; margin-bottom: 5px; font-weight: 600; color: #555;">Categoría del aporte:</label>
-      <select id="categoria" name="categoria" 
-              style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 6px; font-size: 16px; box-sizing: border-box;">
-        <option value="correccion">Corrección de datos</option>
-        <option value="nueva-informacion">Nueva información</option>
-        <option value="sugerencia">Sugerencia de mejora</option>
-        <option value="pregunta">Pregunta</option>
-        <option value="otro">Otro</option>
-      </select>
-    </div>
-    
-    <!-- Botón de envío -->
+    <!-- ======================================== -->
+    <!-- 3. BOTÓN DE ENVÍO                        -->
+    <!-- ======================================== -->
     <button type="submit" 
-            style="background: #2d6a4f; color: white; padding: 14px 28px; border: none; border-radius: 6px; font-size: 18px; font-weight: bold; cursor: pointer; transition: background 0.3s ease; margin-top: 10px;">
-      📤 Enviar aporte
+            style="background: linear-gradient(135deg, #6b4c3b, #4a3520); color: white; padding: 14px 28px; border: none; border-radius: 8px; font-size: 18px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; margin-top: 5px; letter-spacing: 1px; box-shadow: 0 4px 12px rgba(74, 53, 32, 0.3);"
+            onmouseover="this.style.transform='scale(1.02)'; this.style.boxShadow='0 6px 20px rgba(74, 53, 32, 0.4)';"
+            onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 4px 12px rgba(74, 53, 32, 0.3)';">
+      📤 Enviar Todos los Aportes
     </button>
     
-    <!-- Mensaje de confirmación (se muestra después de enviar) -->
-    <div id="mensaje-confirmacion" style="display: none; background: #d4edda; color: #155724; padding: 12px; border-radius: 6px; text-align: center; font-weight: 500;">
-      ✅ ¡Gracias por tu aporte! Tu información ha sido recibida.
+    <!-- ======================================== -->
+    <!-- 4. MENSAJE DE CONFIRMACIÓN               -->
+    <!-- ======================================== -->
+    <div id="mensaje-confirmacion" style="display: none; background: #d4edda; color: #155724; padding: 14px; border-radius: 8px; text-align: center; font-weight: 500; border: 1px solid #b7d7c2; margin-top: 5px;">
+      ✅ ¡Gracias por tus aportes! Toda la información ha sido recibida y será procesada.
     </div>
     
   </form>
 </section>
 
+<!-- ========================================================== -->
+<!-- JAVASCRIPT: AGREGAR Y ELIMINAR FILAS DINÁMICAMENTE        -->
+<!-- ========================================================== -->
+<script>
+(function() {
+  
+  // Elementos del DOM
+  const contenedor = document.getElementById('contenedor-filas');
+  const btnAgregar = document.getElementById('agregar-fila');
+  
+  // Contador de filas para IDs únicos
+  let contadorFilas = 1;
+  
+  // Función para crear una nueva fila
+  function crearFila() {
+    contadorFilas++;
+    const fila = document.createElement('div');
+    fila.className = 'fila-aporte';
+    fila.style.cssText = 'display: grid; grid-template-columns: 70px 100px 1fr 1fr 1.8fr; gap: 8px; margin-bottom: 10px; padding: 10px; background: #faf8f5; border-radius: 8px; align-items: center;';
+    
+    // Generar HTML de la fila
+    fila.innerHTML = `
+      <!-- Telar -->
+      <div>
+        <label style="font-size: 11px; font-weight: 600; color: #4a3520; display: block; margin-bottom: 2px;">Telar</label>
+        <input type="number" name="telar[]" min="1" max="113" placeholder="001" required
+               style="width: 100%; padding: 6px 4px; border: 2px solid #d4c8b8; border-radius: 6px; font-size: 14px; text-align: center; box-sizing: border-box;" />
+      </div>
+      
+      <!-- Lote -->
+      <div>
+        <label style="font-size: 11px; font-weight: 600; color: #4a3520; display: block; margin-bottom: 2px;">Lote</label>
+        <input type="text" name="lote[]" maxlength="8" placeholder="LOTE-001" required
+               style="width: 100%; padding: 6px 4px; border: 2px solid #d4c8b8; border-radius: 6px; font-size: 14px; text-align: center; box-sizing: border-box; text-transform: uppercase;" />
+      </div>
+      
+      <!-- Estilo -->
+      <div>
+        <label style="font-size: 11px; font-weight: 600; color: #4a3520; display: block; margin-bottom: 2px;">Estilo</label>
+        <select name="estilo[]" required style="width: 100%; padding: 6px 4px; border: 2px solid #d4c8b8; border-radius: 6px; font-size: 14px; background: white; box-sizing: border-box;">
+          <option value="">Seleccionar</option>
+          <option value="Andino">Andino</option>
+          <option value="Colonial">Colonial</option>
+          <option value="Moderno">Moderno</option>
+          <option value="Tradicional">Tradicional</option>
+          <option value="Contemporáneo">Contemporáneo</option>
+          <option value="Étnico">Étnico</option>
+          <option value="Minimalista">Minimalista</option>
+          <option value="Rústico">Rústico</option>
+        </select>
+      </div>
+      
+      <!-- Clase -->
+      <div>
+        <label style="font-size: 11px; font-weight: 600; color: #4a3520; display: block; margin-bottom: 2px;">Clase</label>
+        <select name="clase[]" required style="width: 100%; padding: 6px 4px; border: 2px solid #d4c8b8; border-radius: 6px; font-size: 14px; background: white; box-sizing: border-box;">
+          <option value="">Seleccionar</option>
+          <option value="Calidad">Calidad</option>
+          <option value="Mantenimiento">Mantenimiento</option>
+          <option value="Producción">Producción</option>
+          <option value="Planificación">Planificación</option>
+          <option value="Auditoría">Auditoría</option>
+        </select>
+      </div>
+      
+      <!-- Descripción -->
+      <div>
+        <label style="font-size: 11px; font-weight: 600; color: #4a3520; display: block; margin-bottom: 2px;">Descripción</label>
+        <input type="text" name="descripcion[]" placeholder="Ej: Técnica de tejido, material, observación..." required
+               style="width: 100%; padding: 6px 8px; border: 2px solid #d4c8b8; border-radius: 6px; font-size: 14px; box-sizing: border-box;" />
+      </div>
+      
+      <!-- Botón eliminar -->
+      <div style="text-align: center;">
+        <button type="button" class="eliminar-fila" 
+                style="background: #dc3545; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; font-size: 14px; font-weight: bold; cursor: pointer; line-height: 1; transition: background 0.3s;"
+                onmouseover="this.style.background='#c82333'" onmouseout="this.style.background='#dc3545'">
+          ✕
+        </button>
+      </div>
+    `;
+    
+    return fila;
+  }
+  
+  // Evento: Agregar fila
+  btnAgregar.addEventListener('click', function() {
+    const nuevaFila = crearFila();
+    contenedor.appendChild(nuevaFila);
+    
+    // Asignar evento de eliminar a la nueva fila
+    const btnEliminar = nuevaFila.querySelector('.eliminar-fila');
+    btnEliminar.addEventListener('click', function() {
+      if (contenedor.children.length > 1) {
+        contenedor.removeChild(nuevaFila);
+      } else {
+        alert('Debe haber al menos una línea de aporte.');
+      }
+    });
+  });
+  
+  // Evento: Eliminar filas existentes
+  document.querySelectorAll('.eliminar-fila').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      const fila = this.closest('.fila-aporte');
+      if (contenedor.children.length > 1) {
+        contenedor.removeChild(fila);
+      } else {
+        alert('Debe haber al menos una línea de aporte.');
+      }
+    });
+  });
+  
+})();
+</script>
 
   
 </body>
