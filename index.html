@@ -156,6 +156,7 @@ tr:hover td { background: var(--glass); }
 .control-row {
   display: flex; align-items: center; gap: 10px; margin: 10px 0;
   padding: 10px; background: var(--glass); border-radius: 8px;
+  flex-wrap: wrap;
 }
 .control-row label { font-size: 13px; font-weight: 600; }
 .control-row input, .control-row select {
@@ -259,12 +260,20 @@ tr:hover td { background: var(--glass); }
       <label>📅 Ver día:</label>
       <select id="daySelect"></select>
     </div>
+    <!-- 🔷 NUEVO: Selector de contrato -->
+    <div class="control-row" id="contractSelector" style="display:none;">
+      <label>📑 Ver contrato:</label>
+      <select id="contractSelect">
+        <option value="all">📊 Todos los contratos</option>
+      </select>
+      <span id="contractInfo" style="font-size:12px;color:var(--text-secondary);"></span>
+    </div>
     <div id="status" class="status"></div>
   </div>
 
   <div id="mainContent" style="display:none;">
     <div class="card">
-      <div class="section-title">📊 KPIs Globales</div>
+      <div class="section-title">📊 KPIs Globales <span id="kpiContexto" style="font-size:12px;color:var(--text-secondary);font-weight:400;"></span></div>
       <div id="kpiArea" class="kpi-grid"></div>
     </div>
 
@@ -282,7 +291,7 @@ tr:hover td { background: var(--glass); }
 
       <div id="tab-dashboard" class="tab-content active">
         <div class="charts-grid">
-          <div class="chart-box"><h3>📈 Tendencia U+T/100k (histórico)</h3><canvas id="chartTrend"></canvas></div>
+          <div class="chart-box"><h3 id="trendTitle">📈 Tendencia U+T/100k (histórico)</h3><canvas id="chartTrend"></canvas></div>
           <div class="chart-box"><h3>🏆 Top estilos (menor U+T/100k) con % telares</h3><canvas id="chartTopEstilos"></canvas></div>
         </div>
         <div class="charts-grid" style="margin-top:20px;">
@@ -298,7 +307,6 @@ tr:hover td { background: var(--glass); }
       <div id="tab-datos" class="tab-content"><div class="table-wrapper" id="tableDatos"></div></div>
       <div id="tab-estilo" class="tab-content"><div class="table-wrapper" id="tableEstilo"></div></div>
       <div id="tab-telar" class="tab-content">
-        <!-- Filtros -->
         <div class="filtros-telar">
           <label for="filtro-telar">Telar:</label>
           <select id="filtro-telar">
@@ -325,109 +333,95 @@ tr:hover td { background: var(--glass); }
 
 <script>
 // ============================================================
-// TEJEDURÍA JEANTEX — CON MEJORAS IMPLEMENTADAS
+// TEJEDURÍA JEANTEX — CON FILTRO POR CONTRATO + HISTÓRICO POR CONTRATO
 // ============================================================
 Chart.register(ChartDataLabels);
 
 const FACTOR_PULG = 39.37007874;
-const STORAGE_KEY = 'tejeduria_history_final';
+const STORAGE_KEY = 'tejeduria_history_final_v2'; // 🔷 NUEVO: v2 para estructura por contrato
 const TOTAL_TELARES = 97;
+
+// 🔷 NUEVO: Distribución de telares por contrato (fuente: Configuracion-sala97_14TxC.txt)
+const CONTRATOS = {
+  'C01': ['01','02','03','04','10','11','12','13','14','19','20','21','22','23'],
+  'C02': ['05','06','07','08','09','15','16','17','18','24','25','26','27','28'],
+  'C03': ['29','30','31','32','33','38','39','40','41','42','48','49','50','51'],
+  'C04': ['34','35','36','37','43','44','45','46','47','52','53','54','55','56'],
+  'C05': ['57','58','59','60','61','66','67','68','69','70','75','76','77'],
+  'C06': ['62','63','64','65','71','72','73','74','78','79','80','81','82'],
+  'C07': ['91','92','94','95','96','97','98','99','100','101','102','103','111','112','113'],
+  'C08': ['83','84','85','86','87','88','89','90','93'],
+  'C09': ['105','106'],
+  'C10': ['107','108','109','110']
+};
+const CONTRATO_TODOS = 'all';
+
 let allData = {};
 let currentFecha = null;
+let currentContrato = CONTRATO_TODOS; // 🔷 NUEVO
 let charts = {};
+let vistaActual = null; // 🔷 NUEVO: datos de la vista vigente
 
 // ============================================================
-// 📂 CONFIGURACIÓN DE GITHUB PARA CARGA AUTOMÁTICA
+// 📂 CONFIGURACIÓN GITHUB
 // ============================================================
 const USUARIO_GITHUB = 'fherross3-ops';
 const REPOSITORIO_GITHUB = 'Jtx_EstilosSala97';
 const RAMA_GITHUB = 'main';
 
-// ============================================================
-// 📥 CARGAR ARCHIVOS DESDE GITHUB DE FORMA AUTOMÁTICA
-// ============================================================
 async function cargarArchivosPrecargados() {
   showStatus('📂 Buscando archivos CSV en GitHub...', 'info');
-  
   try {
     const url = 'https://api.github.com/repos/fherross3-ops/Jtx_EstilosSala97/contents/';
     const response = await fetch(url);
-    
     if (!response.ok) {
       showStatus('⚠️ No se pudo obtener la lista de archivos. Arrástralos manualmente.', 'error');
       return;
     }
-    
     const archivos = await response.json();
-    
     const csvs = archivos
-      .filter(function(archivo) {
-        return archivo.name.endsWith('.csv') && archivo.name.includes('Tejeduria');
-      })
-      .map(function(archivo) {
-        return archivo.name;
-      });
-    
+      .filter(function(archivo) { return archivo.name.endsWith('.csv') && archivo.name.includes('Tejeduria'); })
+      .map(function(archivo) { return archivo.name; });
     console.log('📂 Archivos CSV encontrados:', csvs);
-    
     if (csvs.length === 0) {
       showStatus('⚠️ No se encontraron archivos CSV en el repositorio.', 'error');
       return;
     }
-    
     showStatus('📥 Cargando ' + csvs.length + ' archivo(s) desde GitHub...', 'info');
-    
     var todosLosResultados = [];
     var archivosCargados = 0;
-    
     for (var i = 0; i < csvs.length; i++) {
       var nombre = csvs[i];
       var urlRaw = 'https://raw.githubusercontent.com/fherross3-ops/Jtx_EstilosSala97/main/' + encodeURIComponent(nombre);
-      
       try {
         console.log('📥 Cargando:', nombre);
         var responseFile = await fetch(urlRaw);
-        
-        if (!responseFile.ok) {
-          console.warn('⚠️ No se pudo cargar', nombre, responseFile.status);
-          continue;
-        }
-        
+        if (!responseFile.ok) { console.warn('⚠️ No se pudo cargar', nombre, responseFile.status); continue; }
         var texto = await responseFile.text();
         var workbook = XLSX.read(texto, { type: 'string', raw: true });
         var sheetName = workbook.SheetNames[0];
         var rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: '', raw: true });
-        
         var rowsValidas = rows.filter(function(r) {
-          return Object.keys(r).some(function(c) {
-            return String(r[c] || '').trim() !== '';
-          });
+          return Object.keys(r).some(function(c) { return String(r[c] || '').trim() !== ''; });
         });
-        
         if (rowsValidas.length > 0) {
           todosLosResultados.push({ fileName: nombre, rows: rowsValidas });
           archivosCargados++;
           console.log('✅ Cargado', nombre, rowsValidas.length, 'filas');
         }
-      } catch (err) {
-        console.error('❌ Error cargando', nombre, err);
-      }
+      } catch (err) { console.error('❌ Error cargando', nombre, err); }
     }
-    
     if (archivosCargados === 0) {
       showStatus('⚠️ No se pudieron cargar los archivos. Arrástralos manualmente.', 'error');
       return;
     }
-    
     var allRows = [];
     for (var j = 0; j < todosLosResultados.length; j++) {
       allRows = allRows.concat(todosLosResultados[j].rows);
     }
     var nombres = todosLosResultados.map(function(r) { return r.fileName; }).join(', ');
-    
     showStatus('✅ Cargados ' + archivosCargados + ' archivo(s) desde GitHub. Procesando...', 'info');
     procesarMultiDia(allRows, nombres);
-    
   } catch (err) {
     showStatus('❌ Error al cargar archivos: ' + err.message, 'error');
     console.error('❌ Error:', err);
@@ -461,23 +455,13 @@ function normalizarNombre(nombre) {
     .replace(/\s+/g, ' ')
     .trim();
 }
-
 function obtenerColumna(row, cols, nombre) {
   if (!row || !cols || !nombre) return undefined;
-  for (const c of cols) {
-    if (normalizarNombre(c) === nombre) return row[c];
-  }
+  for (const c of cols) if (normalizarNombre(c) === nombre) return row[c];
   const n = nombre.toLowerCase();
-  for (const c of cols) {
-    if (normalizarNombre(c).toLowerCase() === n) return row[c];
-  }
+  for (const c of cols) if (normalizarNombre(c).toLowerCase() === n) return row[c];
   return undefined;
 }
-
-// ============================================================
-// FUNCIONES DE FECHA
-// ============================================================
-
 function formatearFechaEstandar(date) {
   if (!date || isNaN(date.getTime())) return '';
   const d = String(date.getDate()).padStart(2, '0');
@@ -485,11 +469,9 @@ function formatearFechaEstandar(date) {
   const y = date.getFullYear();
   return `${d}/${m}/${y}`;
 }
-
 function parsearFechaUniversal(valor) {
   if (!valor) return null;
   if (valor instanceof Date) return isNaN(valor.getTime()) ? null : valor;
-
   let valorNumerico = parseFloat(String(valor).replace(',', '.'));
   if (!isNaN(valorNumerico) && valorNumerico > 40000 && valorNumerico < 60000) {
     try {
@@ -499,11 +481,8 @@ function parsearFechaUniversal(valor) {
         d.setHours(12, 0, 0, 0);
         return d;
       }
-    } catch (e) {
-      console.warn('Error decodificando fecha de Excel:', e);
-    }
+    } catch (e) { console.warn('Error decodificando fecha de Excel:', e); }
   }
-
   const s = String(valor).trim().replace(/-/g, '/');
   const match = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/);
   if (match) {
@@ -511,31 +490,21 @@ function parsearFechaUniversal(valor) {
     const mes = parseInt(match[2], 10);
     let anio = parseInt(match[3], 10);
     if (match[3].length === 2) anio += 2000;
-
     if (dia < 1 || dia > 31 || mes < 1 || mes > 12) return null;
-
     const d = new Date(anio, mes - 1, dia);
     d.setHours(12, 0, 0, 0);
-    
-    if (!isNaN(d.getTime())) {
-      return d;
-    }
+    if (!isNaN(d.getTime())) return d;
   }
-
-  console.warn('⚠️ No se pudo parsear:', valor);
   return null;
 }
-
 function diagUmasT(v) { return v < 4.5 ? 'OK' : v < 6 ? 'Vigilancia' : 'Crítico'; }
 function muestra(m) { return m < 200 ? 'Muestra baja' : m < 1000 ? 'Muestra media' : 'Muestra sólida'; }
-
 function showStatus(msg, type) {
   type = type || 'info';
   var s = document.getElementById('status');
   s.className = 'status ' + type;
   s.innerHTML = msg;
 }
-
 function getBenchmark() { return parseFloat(document.getElementById('benchmarkInput').value) || 5; }
 
 // ---------- TEMA ----------
@@ -553,49 +522,41 @@ document.getElementById('themeToggle').addEventListener('click', function() {
   if (currentFecha) renderCharts();
 });
 
-// ---------- HISTORIAL ----------
+// ---------- HISTORIAL (formato v2: por fecha + por contrato) ----------
 function loadHistory() {
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); }
   catch(e) { return {}; }
 }
-
-function saveToHistory(fecha, summary) {
+function saveToHistory(fecha, contratoKey, summary) {
   var hist = loadHistory();
-  hist[fecha] = summary;
+  if (!hist[fecha] || typeof hist[fecha] !== 'object' || Array.isArray(hist[fecha])) hist[fecha] = {};
+  hist[fecha][contratoKey] = summary;
   localStorage.setItem(STORAGE_KEY, JSON.stringify(hist));
 }
-
 function clearHistory() {
   if (confirm('¿Eliminar todo el historial guardado?')) {
     localStorage.removeItem(STORAGE_KEY);
     showStatus('🗑️ Historial eliminado', 'info');
     renderHistorial();
+    if (currentFecha) renderCharts();
   }
 }
 
 // ---------- LECTURA DE ARCHIVOS ----------
 var dropZone = document.getElementById('dropZone');
 var fileInput = document.getElementById('fileInput');
-
 dropZone.addEventListener('dragover', function(e) { e.preventDefault(); });
-dropZone.addEventListener('drop', function(e) {
-  e.preventDefault();
-  handleFiles(e.dataTransfer.files);
-});
+dropZone.addEventListener('drop', function(e) { e.preventDefault(); handleFiles(e.dataTransfer.files); });
 fileInput.addEventListener('change', function(e) { handleFiles(e.target.files); });
 
 function handleFiles(files) {
   if (!files.length) return;
   showStatus('⏳ Procesando ' + files.length + ' archivo(s)...', 'info');
   var promises = [];
-  for (var i = 0; i < files.length; i++) {
-    promises.push(readOneFile(files[i]));
-  }
+  for (var i = 0; i < files.length; i++) promises.push(readOneFile(files[i]));
   Promise.all(promises).then(function(results) {
     var allRows = [];
-    for (var j = 0; j < results.length; j++) {
-      allRows = allRows.concat(results[j].rows);
-    }
+    for (var j = 0; j < results.length; j++) allRows = allRows.concat(results[j].rows);
     var nombres = results.map(function(r) { return r.fileName; }).join(', ');
     procesarMultiDia(allRows, nombres);
   }).catch(function(err) {
@@ -603,7 +564,6 @@ function handleFiles(files) {
     console.error(err);
   });
 }
-
 function readOneFile(file) {
   return new Promise(function(resolve, reject) {
     var reader = new FileReader();
@@ -628,27 +588,18 @@ function readOneFile(file) {
 function procesarMultiDia(rows, fileName) {
   try {
     if (!rows || !rows.length) throw new Error('No hay datos válidos.');
-    
+
     var colsOriginales = Object.keys(rows[0]);
     var datos = rows.map(function(r) {
       var mapped = {};
       var fechaRaw = obtenerColumna(r, colsOriginales, 'Fecha');
-      
       var fechaProcesada = fechaRaw;
-      if (!isNaN(parseFloat(fechaRaw)) && parseFloat(fechaRaw) > 40000) {
-        fechaProcesada = parseFloat(fechaRaw);
-      }
-      
+      if (!isNaN(parseFloat(fechaRaw)) && parseFloat(fechaRaw) > 40000) fechaProcesada = parseFloat(fechaRaw);
       var objetoFecha = parsearFechaUniversal(fechaProcesada);
-      
       mapped['_fechaObj'] = objetoFecha;
       mapped['Fecha'] = objetoFecha ? formatearFechaEstandar(objetoFecha) : str(fechaRaw);
-      
-      if (objetoFecha && !isNaN(objetoFecha.getTime())) {
-        mapped['Día'] = DIAS_SEMANA[objetoFecha.getDay()];
-      } else {
-        mapped['Día'] = str(obtenerColumna(r, colsOriginales, 'Día'));
-      }
+      if (objetoFecha && !isNaN(objetoFecha.getTime())) mapped['Día'] = DIAS_SEMANA[objetoFecha.getDay()];
+      else mapped['Día'] = str(obtenerColumna(r, colsOriginales, 'Día'));
 
       mapped['Turno'] = str(obtenerColumna(r, colsOriginales, 'Turno'));
       mapped['Actividad'] = str(obtenerColumna(r, colsOriginales, 'Actividad'));
@@ -687,31 +638,18 @@ function procesarMultiDia(rows, fileName) {
       return mapped;
     });
 
-    console.log('🔍 PRIMEROS 5 REGISTROS:');
-    datos.slice(0, 5).forEach(function(d, i) {
-      console.log('  ' + (i+1) + '. Fecha: "' + d['Fecha'] + '", _fechaObj:', d['_fechaObj']);
-    });
-
     var fechasMap = new Map();
     datos.forEach(function(d) {
       if (d['_fechaObj'] && !isNaN(d['_fechaObj'].getTime())) {
         var key = formatearFechaEstandar(d['_fechaObj']);
-        if (!fechasMap.has(key)) {
-          fechasMap.set(key, d['_fechaObj']);
-        }
+        if (!fechasMap.has(key)) fechasMap.set(key, d['_fechaObj']);
       }
     });
-
-    if (fechasMap.size === 0) {
-      console.error('❌ No se detectaron fechas. Datos:', datos.slice(0, 3));
-      throw new Error('No se detectaron fechas.');
-    }
+    if (fechasMap.size === 0) throw new Error('No se detectaron fechas.');
 
     var fechasUnicas = Array.from(fechasMap.keys()).sort(function(a, b) {
       return fechasMap.get(a).getTime() - fechasMap.get(b).getTime();
     });
-
-    console.log('✅ Fechas ordenadas correctamente:', fechasUnicas);
 
     allData = {};
     fechasUnicas.forEach(function(fechaStr) {
@@ -719,18 +657,24 @@ function procesarMultiDia(rows, fileName) {
       var datosDia = datos.filter(function(d) {
         return formatearFechaEstandar(d['_fechaObj']) === fechaStr;
       });
-      allData[fechaStr] = procesarDia(datosDia, fechaStr, fileName);
-      saveToHistory(fechaStr, {
-        fecha: fechaStr,
+      // Almacenar TODOS los datos del día (sin filtro de contrato)
+      allData[fechaStr] = {
+        datos: datosDia,
         fileName: fileName,
-        kpi: allData[fechaStr].kpiGlobal,
-        resumenDia: allData[fechaStr].resumenDia,
-        timestamp: fechaObj.getTime()
+        fechaPrincipal: fechaStr
+      };
+      // 🔷 NUEVO: guardar historial para CADA contrato + 'all'
+      var timestamp = fechaObj.getTime();
+      saveToHistory(fechaStr, 'all', resumenRapido(datosDia, fechaStr, fileName, 'all', timestamp));
+      Object.keys(CONTRATOS).forEach(function(c) {
+        saveToHistory(fechaStr, c, resumenRapido(datosDia, fechaStr, fileName, c, timestamp));
       });
     });
 
     currentFecha = fechasUnicas[0];
+    currentContrato = CONTRATO_TODOS;
     mostrarSelectorDias(fechasUnicas);
+    poblarSelectorContratos();
     renderAll();
 
     showStatus('✅ Procesadas ' + fechasUnicas.length + ' fecha(s) · ' + datos.length + ' filas totales', 'success');
@@ -739,16 +683,73 @@ function procesarMultiDia(rows, fileName) {
     document.getElementById('btnClearHistory').disabled = false;
     document.getElementById('mainContent').style.display = 'block';
 
-    // Poblar selector de telares en filtros
     poblarSelectorTelares();
-
   } catch (err) {
     showStatus('❌ Error: ' + err.message, 'error');
     console.error(err);
   }
 }
 
-function procesarDia(datos, fecha, fileName) {
+// 🔷 NUEVO: resumen ligero por contrato para el histórico
+function resumenRapido(datos, fecha, fileName, contrato, timestamp) {
+  var telaresContrato = (contrato && contrato !== CONTRATO_TODOS && CONTRATOS[contrato])
+    ? CONTRATOS[contrato] : null;
+
+  var datosF = telaresContrato
+    ? datos.filter(function(d) { return telaresContrato.indexOf(d['Telar']) !== -1; })
+    : datos;
+
+  var activos = datosF.filter(function(d) { return d['Usar Capa 2'] === 'Sí'; });
+  var totalPasadas = activos.reduce(function(s,d) { return s + d['Pasadas estimadas']; }, 0);
+  var totalMetros = activos.reduce(function(s,d) { return s + d['Metros tejidos']; }, 0);
+  var totalTrama = activos.reduce(function(s,d) { return s + d['R Abs. Trama']; }, 0);
+  var totalUrd = activos.reduce(function(s,d) { return s + d['R Abs. Urd.']; }, 0);
+  var totalManual = activos.reduce(function(s,d) { return s + d['R Abs. Manual']; }, 0);
+
+  var telaresActivosSet = new Set();
+  datosF.forEach(function(d) {
+    if (d['Usar Capa 2'] === 'Sí' && d['Telar'] && d['Telar'] !== 'S/N') telaresActivosSet.add(d['Telar']);
+  });
+
+  var totalTelares = telaresContrato ? telaresContrato.length : Math.max(TOTAL_TELARES, telaresActivosSet.size);
+  var telaresActivosCount = telaresActivosSet.size;
+  var telaresInactivosCount = Math.max(0, totalTelares - telaresActivosCount);
+
+  var ut = totalPasadas > 0 ? ((totalTrama+totalUrd)/totalPasadas)*100000 : 0;
+
+  return {
+    fecha: fecha,
+    fileName: fileName,
+    contrato: contrato || CONTRATO_TODOS,
+    timestamp: timestamp || (parsearFechaUniversal(fecha) || new Date()).getTime(),
+    kpi: {
+      'Telares Activos': telaresActivosCount,
+      'Telares Inactivos': telaresInactivosCount,
+      'Telares Totales': totalTelares,
+      'Metros tejidos activos': totalMetros,
+      'Pasadas estimadas': totalPasadas,
+      'Trama / 100k': totalPasadas > 0 ? (totalTrama/totalPasadas)*100000 : 0,
+      'Urdimbre / 100k': totalPasadas > 0 ? (totalUrd/totalPasadas)*100000 : 0,
+      'Manual / 100k': totalPasadas > 0 ? (totalManual/totalPasadas)*100000 : 0,
+      'U+T / 100k': ut,
+      'Total / 100k': totalPasadas > 0 ? ((totalTrama+totalUrd+totalManual)/totalPasadas)*100000 : 0
+    },
+    resumenDia: [{
+      'Fecha': fecha, 'Reg.': activos.length, 'Metros': totalMetros, 'Pasadas': totalPasadas,
+      'U+T/100k': ut, 'Diagnóstico': diagUmasT(ut)
+    }]
+  };
+}
+
+// ---------- CÁLCULO COMPLETO CON FILTRO DE CONTRATO ----------
+function calcularTodo(datosOriginales, fecha, fileName, contrato) {
+  var telaresContrato = (contrato && contrato !== CONTRATO_TODOS && CONTRATOS[contrato])
+    ? CONTRATOS[contrato] : null;
+
+  var datos = telaresContrato
+    ? datosOriginales.filter(function(d) { return telaresContrato.indexOf(d['Telar']) !== -1; })
+    : datosOriginales;
+
   var activos = datos.filter(function(d) { return d['Usar Capa 2'] === 'Sí'; });
   var totalPasadas = activos.reduce(function(s,d) { return s + d['Pasadas estimadas']; }, 0);
   var totalMetros = activos.reduce(function(s,d) { return s + d['Metros tejidos']; }, 0);
@@ -756,42 +757,28 @@ function procesarDia(datos, fecha, fileName) {
   var totalUrd = activos.reduce(function(s,d) { return s + d['R Abs. Urd.']; }, 0);
   var totalManual = activos.reduce(function(s,d) { return s + d['R Abs. Manual']; }, 0);
 
-  // ============================================================
-  // 📊 KPIs MEJORADOS - TELARES ACTIVOS / INACTIVOS (CORREGIDO)
-  // ============================================================
   var telaresUnicos = new Set();
   var telaresActivos = new Set();
-  var telaresInactivos = new Set();
-
   datos.forEach(function(d) {
-    var telar = d['Telar'];
-    if (telar && telar !== 'S/N' && telar !== '') {
-      telaresUnicos.add(telar);
-      if (d['Usar Capa 2'] === 'Sí') {
-        telaresActivos.add(telar);
-      }
+    var t = d['Telar'];
+    if (t && t !== 'S/N' && t !== '') {
+      telaresUnicos.add(t);
+      if (d['Usar Capa 2'] === 'Sí') telaresActivos.add(t);
     }
   });
 
-  datos.forEach(function(d) {
-    var telar = d['Telar'];
-    if (telar && telar !== 'S/N' && telar !== '') {
-      if (!telaresActivos.has(telar)) {
-        telaresInactivos.add(telar);
-      }
-    }
-  });
-
-  var totalTelares = Math.max(TOTAL_TELARES, telaresUnicos.size);
   var telaresActivosCount = telaresActivos.size;
-  var telaresInactivosCount = telaresInactivos.size;
-  var pctActivos = (telaresActivosCount / totalTelares) * 100;
-  var pctInactivos = (telaresInactivosCount / totalTelares) * 100;
+  var totalTelares, telaresInactivosCount;
+  if (telaresContrato) {
+    totalTelares = telaresContrato.length;
+    telaresInactivosCount = Math.max(0, totalTelares - telaresActivosCount);
+  } else {
+    totalTelares = Math.max(TOTAL_TELARES, telaresUnicos.size);
+    telaresInactivosCount = Math.max(0, totalTelares - telaresActivosCount);
+  }
 
-  console.log('🔍 Telares Activos:', telaresActivosCount);
-  console.log('🔍 Telares Inactivos:', telaresInactivosCount);
-  console.log('🔍 Total:', totalTelares);
-  console.log('🔍 Suma:', telaresActivosCount + telaresInactivosCount);
+  var pctActivos = totalTelares > 0 ? (telaresActivosCount / totalTelares) * 100 : 0;
+  var pctInactivos = totalTelares > 0 ? (telaresInactivosCount / totalTelares) * 100 : 0;
 
   var kpiGlobal = {
     'Telares Activos': telaresActivosCount + ' (' + fmt(pctActivos, 1) + '%)',
@@ -809,55 +796,34 @@ function procesarDia(datos, fecha, fileName) {
   var resumenDia = [{
     'Fecha': fecha, 'Día': activos[0]?.['Día'] || '', 'Reg.': activos.length,
     'Metros': totalMetros, 'Pasadas': totalPasadas,
-    'Trama/100k': totalPasadas > 0 ? (totalTrama/totalPasadas)*100000 : 0,
-    'Urd/100k': totalPasadas > 0 ? (totalUrd/totalPasadas)*100000 : 0,
-    'Manual/100k': totalPasadas > 0 ? (totalManual/totalPasadas)*100000 : 0,
-    'U+T/100k': totalPasadas > 0 ? ((totalTrama+totalUrd)/totalPasadas)*100000 : 0,
-    'Total/100k': totalPasadas > 0 ? ((totalTrama+totalUrd+totalManual)/totalPasadas)*100000 : 0,
-    'Diagnóstico': diagUmasT(totalPasadas > 0 ? ((totalTrama+totalUrd)/totalPasadas)*100000 : 0)
+    'Trama/100k': kpiGlobal['Trama / 100k'],
+    'Urd/100k': kpiGlobal['Urdimbre / 100k'],
+    'Manual/100k': kpiGlobal['Manual / 100k'],
+    'U+T/100k': kpiGlobal['U+T / 100k'],
+    'Total/100k': kpiGlobal['Total / 100k'],
+    'Diagnóstico': diagUmasT(kpiGlobal['U+T / 100k'])
   }];
 
-  // ============================================================
-  // 📊 ESTILOS - CON CONTEO DE TELARES ÚNICOS
-  // ============================================================
+  // Estilos
   var porEstilo = {};
   activos.forEach(function(d) {
     var e = str(d['Estilo']) || 'SIN ESTILO';
-    if (!porEstilo[e]) porEstilo[e] = { 
-      estilo:e, 
-      reg:0, 
-      metros:0, 
-      pasadas:0, 
-      t:0, 
-      u:0, 
-      m:0, 
-      ppps: new Set(),
-      telares: new Set()
+    if (!porEstilo[e]) porEstilo[e] = {
+      estilo:e, reg:0, metros:0, pasadas:0, t:0, u:0, m:0, ppps: new Set(), telares: new Set()
     };
     var g = porEstilo[e];
-    g.reg++; 
-    g.metros += d['Metros tejidos']; 
-    g.pasadas += d['Pasadas estimadas'];
-    g.t += d['R Abs. Trama']; 
-    g.u += d['R Abs. Urd.']; 
-    g.m += d['R Abs. Manual'];
+    g.reg++; g.metros += d['Metros tejidos']; g.pasadas += d['Pasadas estimadas'];
+    g.t += d['R Abs. Trama']; g.u += d['R Abs. Urd.']; g.m += d['R Abs. Manual'];
     if (d['PPP'] > 0) g.ppps.add(d['PPP']);
     if (d['Telar']) g.telares.add(d['Telar']);
   });
-  
   var resumenEstilo = Object.values(porEstilo).map(function(g) {
     var ut = g.pasadas>0 ? ((g.t+g.u)/g.pasadas)*100000 : 0;
-    var totalTelaresEstilo = g.telares.size;
-    var pctTelaresEstilo = (totalTelaresEstilo / TOTAL_TELARES) * 100;
-    
+    var nTel = g.telares.size;
+    var pctTel = totalTelares > 0 ? (nTel / totalTelares) * 100 : 0;
     return {
-      'Estilo': g.estilo, 
-      'Registros': g.reg, 
-      'Metros': g.metros, 
-      'Pasadas': g.pasadas,
-      'Trama abs': g.t, 
-      'Urd abs': g.u, 
-      'Manual abs': g.m,
+      'Estilo': g.estilo, 'Registros': g.reg, 'Metros': g.metros, 'Pasadas': g.pasadas,
+      'Trama abs': g.t, 'Urd abs': g.u, 'Manual abs': g.m,
       'Trama/100k': g.pasadas>0 ? (g.t/g.pasadas)*100000 : 0,
       'Urd/100k': g.pasadas>0 ? (g.u/g.pasadas)*100000 : 0,
       'Manual/100k': g.pasadas>0 ? (g.m/g.pasadas)*100000 : 0,
@@ -866,11 +832,12 @@ function procesarDia(datos, fecha, fileName) {
       'Diagnóstico': diagUmasT(ut),
       'Muestra': muestra(g.metros),
       '_ppps': Array.from(g.ppps),
-      '_telares_count': totalTelaresEstilo,
-      '_telares_pct': pctTelaresEstilo
+      '_telares_count': nTel,
+      '_telares_pct': pctTel
     };
   }).sort(function(a,b) { return (a['U+T/100k'] || 0) - (b['U+T/100k'] || 0); });
 
+  // Telares
   var porTelar = {};
   activos.forEach(function(d) {
     var t = str(d['Telar']) || 'S/N';
@@ -881,7 +848,6 @@ function procesarDia(datos, fecha, fileName) {
     g.reg++; g.metros += d['Metros tejidos']; g.pasadas += d['Pasadas estimadas'];
     g.t_ += d['R Abs. Trama']; g.u += d['R Abs. Urd.']; g.m += d['R Abs. Manual'];
   });
-  
   var estilosCriticos = resumenEstilo.filter(function(e) { return e['U+T/100k'] >= 4.5; });
   var resumenTelar = Object.values(porTelar).map(function(g) {
     var estilosArr = Object.entries(g.estilos);
@@ -912,38 +878,44 @@ function procesarDia(datos, fecha, fileName) {
 
   var basePPP = resumenEstilo.map(function(g) {
     return {
-      'Estilo': g.estilo,
+      'Estilo': g['Estilo'],
       'PPP usado': g._ppps[0] || 0,
       'PPP detectados': g._ppps.join(','),
       'PPP count': g._ppps.length,
-      'Registros activos': g.reg,
-      'Metros activos': g.metros,
+      'Registros activos': g['Registros'],
+      'Metros activos': g['Metros'],
       'RPM promedio': 0
     };
   }).sort(function(a,b) { return str(a['Estilo']).localeCompare(str(b['Estilo'])); });
 
   var validacion = [
     ['Archivo fuente', fileName, 'Fuente cargada por usuario'],
-    ['Filas CSV', datos.length, 'Incluye activos e inactivos'],
-    ['Fechas detectadas', fecha, 'Se detectaron ' + Object.keys(allData).length + ' día(s) en total'],
-    ['Columna usada para telar', 'Telar', 'Número real del telar'],
-    ['Columna NO usada para telar', 'TELAR', 'Se conserva como TELAR_sistema_no_usar'],
-    ['Criterio Capa 2', 'Actividad=ACTIVO + Metros>0 + PPP>0', 'Excluye paros Capa 1'],
-    ['Fórmula pasadas', 'Metros tejidos × PPP × 39,37007874', 'Denominador técnico'],
-    ['Criterio mejores estilos', 'Metros >= 1.000 y menor U+T/100k', 'Evita corridas pequeñas'],
-    ['Criterio estilos críticos', 'U+T/100k >= 4,5', 'No mezcla manual con técnica'],
-    ['Registros activos incluidos', activos.length, 'Base real de respiración'],
-    ['Registros excluidos', datos.length - activos.length, 'No se usan en Capa 2']
+    ['Contrato aplicado', contrato === CONTRATO_TODOS ? 'TODOS' : contrato,
+      telaresContrato ? (telaresContrato.length + ' telares del contrato') : 'Sin filtro'],
+    ['Filas en vista', datos.length, 'Después de filtrar por contrato'],
+    ['Registros activos incluidos', activos.length, 'Base real de Capa 2'],
+    ['Registros excluidos', datos.length - activos.length, 'No se usan en Capa 2'],
+    ['Fecha analizada', fecha, 'Día en análisis'],
+    ['Fórmula pasadas', 'Metros × PPP × 39,37007874', 'Denominador técnico'],
+    ['Criterio estilos críticos', 'U+T/100k >= 4,5', 'No mezcla manual con técnica']
   ];
 
   return {
-    datos: datos, activos: activos, kpiGlobal: kpiGlobal, resumenDia: resumenDia,
-    resumenEstilo: resumenEstilo, resumenTelar: resumenTelar, basePPP: basePPP,
-    validacion: validacion, fileName: fileName, fechaPrincipal: fecha,
+    datos: datos, activos: activos,
+    kpiGlobal: kpiGlobal, resumenDia: resumenDia,
+    resumenEstilo: resumenEstilo, resumenTelar: resumenTelar,
+    basePPP: basePPP, validacion: validacion,
+    fileName: fileName, fechaPrincipal: fecha,
+    contrato: contrato || CONTRATO_TODOS,
     telaresActivosCount: telaresActivosCount,
     telaresInactivosCount: telaresInactivosCount,
     totalTelares: totalTelares
   };
+}
+
+// Compatibilidad
+function procesarDia(datos, fecha, fileName) {
+  return calcularTodo(datos, fecha, fileName, CONTRATO_TODOS);
 }
 
 // ---------- SELECTOR DE DÍAS ----------
@@ -953,29 +925,82 @@ function mostrarSelectorDias(fechas) {
   select.innerHTML = fechas.map(function(f) { return '<option value="' + f + '">' + f + '</option>'; }).join('');
   select.value = currentFecha;
   selector.style.display = 'flex';
-  select.addEventListener('change', function(e) {
+  // evitar duplicar listeners
+  var nuevo = select.cloneNode(true);
+  select.parentNode.replaceChild(nuevo, select);
+  nuevo.addEventListener('change', function(e) {
     currentFecha = e.target.value;
     renderAll();
   });
 }
 
+// 🔷 NUEVO: Poblar selector de contratos
+function poblarSelectorContratos() {
+  var sel = document.getElementById('contractSelect');
+  if (!sel) return;
+  sel.innerHTML = '<option value="all">📊 Todos los contratos</option>';
+  Object.keys(CONTRATOS).forEach(function(c) {
+    var opt = document.createElement('option');
+    opt.value = c;
+    opt.textContent = c + ' · ' + CONTRATOS[c].length + ' telares';
+    sel.appendChild(opt);
+  });
+  sel.value = currentContrato;
+  // evitar duplicar listener
+  var nuevo = sel.cloneNode(true);
+  sel.parentNode.replaceChild(nuevo, sel);
+  nuevo.addEventListener('change', function(e) {
+    currentContrato = e.target.value;
+    renderAll();
+  });
+  document.getElementById('contractSelector').style.display = 'flex';
+}
+
 // ---------- RENDER PRINCIPAL ----------
 function renderAll() {
   if (!currentFecha || !allData[currentFecha]) return;
-  renderKPIs(allData[currentFecha].kpiGlobal);
-  renderCharts();
-  renderTabla('tableDatos', allData[currentFecha].datos.slice(0, 200), ORDEN_PRUEBA29);
-  renderTabla('tableEstilo', allData[currentFecha].resumenEstilo);
-  // La tabla de telares se maneja con filtros, pero inicialmente mostramos resumen
-  renderTelarResumen(allData[currentFecha].resumenTelar);
-  renderTabla('tablePPP', allData[currentFecha].basePPP);
-  renderTabla('tableValid', allData[currentFecha].validacion.map(function(v) {
+  var base = allData[currentFecha];
+
+  // 🔷 Recalcular la vista según el contrato vigente
+  vistaActual = calcularTodo(base.datos, currentFecha, base.fileName, currentContrato);
+
+  // Contexto en KPIs
+  var ctx = document.getElementById('kpiContexto');
+  if (ctx) {
+    ctx.textContent = (currentContrato === CONTRATO_TODOS)
+      ? '· Todos los contratos'
+      : '· Contrato ' + currentContrato + ' (' + CONTRATOS[currentContrato].length + ' telares)';
+  }
+
+  renderKPIs(vistaActual.kpiGlobal);
+  renderCharts(vistaActual);
+  renderTabla('tableDatos', vistaActual.datos.slice(0, 200), ORDEN_PRUEBA29);
+  renderTabla('tableEstilo', vistaActual.resumenEstilo);
+  renderTelarResumen(vistaActual.resumenTelar);
+  renderTabla('tablePPP', vistaActual.basePPP);
+  renderTabla('tableValid', vistaActual.validacion.map(function(v) {
     return {Validación:v[0], Resultado:v[1], Lectura:v[2]};
   }));
-  renderAlertas();
+  renderAlertas(vistaActual);
   renderHistorial();
-  // Poblar selector de telares si no está poblado
   poblarSelectorTelares();
+
+  // Info de contrato
+  var info = document.getElementById('contractInfo');
+  if (info) {
+    if (currentContrato === CONTRATO_TODOS) {
+      info.textContent = '';
+    } else {
+      info.textContent = '· Activos: ' + vistaActual.kpiGlobal['Telares Activos'];
+    }
+  }
+
+  // Título del trend
+  var tTitle = document.getElementById('trendTitle');
+  if (tTitle) {
+    tTitle.textContent = '📈 Tendencia U+T/100k · ' +
+      (currentContrato === CONTRATO_TODOS ? 'Todos los contratos' : 'Contrato ' + currentContrato);
+  }
 }
 
 function renderKPIs(kpi) {
@@ -999,14 +1024,12 @@ function renderKPIs(kpi) {
   var html = '';
   var telaresHtml = '';
   var telaresKeys = ['Telares Activos', 'Telares Inactivos', 'Telares Totales'];
-  
   telaresKeys.forEach(function(key) {
     var value = kpisMostrar[key] || '0';
     var cls = '';
     if (key === 'Telares Activos') cls = 'telar-activo';
     else if (key === 'Telares Inactivos') cls = 'telar-inactivo';
     else if (key === 'Telares Totales') cls = 'telar-total';
-    
     var displayValue = value;
     var displaySub = '';
     if (typeof value === 'string' && value.includes('(')) {
@@ -1014,30 +1037,25 @@ function renderKPIs(kpi) {
       displayValue = parts[0].trim();
       displaySub = '(' + parts[1];
     }
-    
     telaresHtml += '<div class="kpi ' + cls + '"><div class="label">' + key + '</div><div class="value">' + displayValue + '</div>' + (displaySub ? '<div class="sub">' + displaySub + '</div>' : '') + '</div>';
   });
-  
   html += telaresHtml;
 
   var otrosKeys = Object.keys(kpisMostrar).filter(function(key) {
-    return !telaresKeys.includes(key);
+    return telaresKeys.indexOf(key) === -1;
   });
-  
   otrosKeys.forEach(function(key) {
     var v = kpisMostrar[key];
     var val = typeof v === 'number' ? (key === 'Pasadas estimadas' ? fmtInt(v) : fmt(v)) : v;
     var cls = '';
-    if (key === 'U+T / 100k') {
-      cls = utClass;
-    }
+    if (key === 'U+T / 100k') cls = utClass;
     html += '<div class="kpi ' + cls + '"><div class="label">' + key + '</div><div class="value">' + val + '</div></div>';
   });
 
   document.getElementById('kpiArea').innerHTML = html;
 }
 
-function renderCharts() {
+function renderCharts(dataArg) {
   var benchmark = getBenchmark();
   var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
   var textColor = isDark ? '#e8eaf6' : '#1e293b';
@@ -1049,28 +1067,38 @@ function renderCharts() {
   Object.values(charts).forEach(function(c) { if (c) c.destroy(); });
   charts = {};
 
-  // ============================================================
-  // 📈 TENDENCIA - USANDO SOLO FECHAS PROCESADAS (allData)
-  // ============================================================
-  var fechasProcesadas = Object.keys(allData).sort(function(a, b) {
-    // Ordenar por fecha real (parseando)
-    var da = parsearFechaUniversal(a);
-    var db = parsearFechaUniversal(b);
-    return (da || 0) - (db || 0);
-  });
+  var data = dataArg || vistaActual || calcularTodo(
+    allData[currentFecha].datos, currentFecha, allData[currentFecha].fileName, currentContrato
+  );
 
-  var utValues = fechasProcesadas.map(function(f) {
-    return allData[f].kpiGlobal['U+T / 100k'] || 0;
+  // ============================================================
+  // 📈 TENDENCIA - AHORA POR CONTRATO (usa el histórico por contrato)
+  // ============================================================
+  var hist = loadHistory();
+  var fechasHist = Object.keys(hist)
+    .filter(function(f) { return hist[f] && hist[f][currentContrato]; })
+    .sort(function(a, b) {
+      var da = hist[a][currentContrato].timestamp || 0;
+      var db = hist[b][currentContrato].timestamp || 0;
+      return da - db;
+    });
+
+  var utValues = fechasHist.map(function(f) {
+    var k = hist[f][currentContrato].kpi || {};
+    return k['U+T / 100k'] || 0;
   });
-  var benchmarkLine = fechasProcesadas.map(function() { return benchmark; });
+  var benchmarkLine = fechasHist.map(function() { return benchmark; });
 
   charts.trend = new Chart(document.getElementById('chartTrend'), {
     type: 'line',
     data: {
-      labels: fechasProcesadas,
+      labels: fechasHist,
       datasets: [
-        { label: 'U+T/100k', data: utValues, borderColor: '#6366f1', backgroundColor: 'rgba(99,102,241,0.2)', tension: 0.3, fill: true, pointRadius: 6, pointBackgroundColor: '#6366f1' },
-        { label: 'Benchmark (' + benchmark + ')', data: benchmarkLine, borderColor: '#ef4444', borderDash: [5,5], pointRadius: 0, fill: false }
+        { label: 'U+T/100k (' + (currentContrato === CONTRATO_TODOS ? 'Todos' : currentContrato) + ')',
+          data: utValues, borderColor: '#6366f1', backgroundColor: 'rgba(99,102,241,0.2)',
+          tension: 0.3, fill: true, pointRadius: 6, pointBackgroundColor: '#6366f1' },
+        { label: 'Benchmark (' + benchmark + ')', data: benchmarkLine,
+          borderColor: '#ef4444', borderDash: [5,5], pointRadius: 0, fill: false }
       ]
     },
     options: {
@@ -1089,12 +1117,8 @@ function renderCharts() {
     }
   });
 
-  // ============================================================
-  // 📊 TOP ESTILOS CON PORCENTAJE DE TELARES
-  // ============================================================
-  var data = allData[currentFecha];
+  // Top estilos
   var topEstilos = data.resumenEstilo.filter(function(e) { return e['Metros'] >= 100; }).slice(0, 8);
-  
   var etiquetasEstilos = topEstilos.map(function(e) {
     var pct = e['_telares_pct'] || 0;
     return e['Estilo'] + ' (' + pct.toFixed(1) + '%)';
@@ -1114,31 +1138,17 @@ function renderCharts() {
       }]
     },
     options: {
-      responsive: true, 
-      indexAxis: 'y',
+      responsive: true, indexAxis: 'y',
       plugins: {
         legend: { display: false },
-        datalabels: { 
-          color: '#fff', 
-          anchor: 'end', 
-          align: 'right', 
-          font: { weight: 'bold', size: 10 }, 
-          formatter: function(value) { 
-            return value.toFixed(2); 
-          }, 
-          padding: 4 
-        }
+        datalabels: { color: '#fff', anchor: 'end', align: 'right',
+          font: { weight: 'bold', size: 10 }, formatter: function(v){ return v.toFixed(2); }, padding: 4 }
       },
-      scales: { 
-        x: { grid: { color: gridColor }, beginAtZero: true }, 
-        y: { grid: { color: gridColor } } 
-      }
+      scales: { x: { grid: { color: gridColor }, beginAtZero: true }, y: { grid: { color: gridColor } } }
     }
   });
 
-  // ============================================================
-  // 📊 GRÁFICO T/100k - CON ESCALA DE COLORES
-  // ============================================================
+  // Trama
   var topTrama = data.resumenTelar.slice(0, 10).sort(function(a, b) { return b['Trama/100k'] - a['Trama/100k']; });
   charts.trama = new Chart(document.getElementById('chartTrama'), {
     type: 'bar',
@@ -1150,29 +1160,19 @@ function renderCharts() {
         backgroundColor: topTrama.map(function(t) {
           var val = t['Trama/100k'];
           if (val < 3) return '#10b981';
-          else if (val >= 3 && val < 6) return '#f59e0b';
+          else if (val < 6) return '#f59e0b';
           else return '#ef4444';
         }),
-        borderColor: topTrama.map(function(t) {
-          var val = t['Trama/100k'];
-          if (val < 3) return '#10b981';
-          else if (val >= 3 && val < 6) return '#f59e0b';
-          else return '#ef4444';
-        }),
-        borderWidth: 1,
-        borderRadius: 4
+        borderWidth: 1, borderRadius: 4
       }]
     },
     options: {
       responsive: true,
       plugins: {
         legend: { display: false },
-        datalabels: {
-          color: '#fff', anchor: 'end', align: 'top',
-          font: { weight: 'bold', size: 10 },
-          formatter: function(value) { return value.toFixed(2); },
-          backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 4, padding: 4
-        }
+        datalabels: { color: '#fff', anchor: 'end', align: 'top',
+          font: { weight: 'bold', size: 10 }, formatter: function(v){ return v.toFixed(2); },
+          backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 4, padding: 4 }
       },
       scales: {
         y: { grid: { color: gridColor }, beginAtZero: true, title: { display: true, text: 'T/100k', color: textColor } },
@@ -1181,9 +1181,7 @@ function renderCharts() {
     }
   });
 
-  // ============================================================
-  // 📊 GRÁFICO U/100k - CON ESCALA DE COLORES
-  // ============================================================
+  // Urdimbre
   var topUrd = data.resumenTelar.slice(0, 10).sort(function(a, b) { return b['Urd/100k'] - a['Urd/100k']; });
   charts.urdimbre = new Chart(document.getElementById('chartUrdimbre'), {
     type: 'bar',
@@ -1195,29 +1193,19 @@ function renderCharts() {
         backgroundColor: topUrd.map(function(t) {
           var val = t['Urd/100k'];
           if (val < 4) return '#10b981';
-          else if (val >= 4 && val <= 6) return '#f59e0b';
+          else if (val <= 6) return '#f59e0b';
           else return '#ef4444';
         }),
-        borderColor: topUrd.map(function(t) {
-          var val = t['Urd/100k'];
-          if (val < 4) return '#10b981';
-          else if (val >= 4 && val <= 6) return '#f59e0b';
-          else return '#ef4444';
-        }),
-        borderWidth: 1,
-        borderRadius: 4
+        borderWidth: 1, borderRadius: 4
       }]
     },
     options: {
       responsive: true,
       plugins: {
         legend: { display: false },
-        datalabels: {
-          color: '#fff', anchor: 'end', align: 'top',
-          font: { weight: 'bold', size: 10 },
-          formatter: function(value) { return value.toFixed(2); },
-          backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 4, padding: 4
-        }
+        datalabels: { color: '#fff', anchor: 'end', align: 'top',
+          font: { weight: 'bold', size: 10 }, formatter: function(v){ return v.toFixed(2); },
+          backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 4, padding: 4 }
       },
       scales: {
         y: { grid: { color: gridColor }, beginAtZero: true, title: { display: true, text: 'U/100k', color: textColor } },
@@ -1226,9 +1214,7 @@ function renderCharts() {
     }
   });
 
-  // ============================================================
-  // 📊 GRÁFICO M/100k - CON ESCALA DE COLORES (CORREGIDO)
-  // ============================================================
+  // Manual
   var topManual = data.resumenTelar.slice(0, 10).sort(function(a, b) { return b['Manual/100k'] - a['Manual/100k']; });
   charts.manual = new Chart(document.getElementById('chartManual'), {
     type: 'bar',
@@ -1240,31 +1226,19 @@ function renderCharts() {
         backgroundColor: topManual.map(function(t) {
           var val = t['Manual/100k'];
           if (val < 1) return '#10b981';
-          else if (val >= 1 && val < 2) return '#f59e0b';
-          else if (val >= 2 && val <= 3) return '#f59e0b';
+          else if (val < 3) return '#f59e0b';
           else return '#ef4444';
         }),
-        borderColor: topManual.map(function(t) {
-          var val = t['Manual/100k'];
-          if (val < 1) return '#10b981';
-          else if (val >= 1 && val < 2) return '#f59e0b';
-          else if (val >= 2 && val <= 3) return '#f59e0b';
-          else return '#ef4444';
-        }),
-        borderWidth: 1,
-        borderRadius: 4
+        borderWidth: 1, borderRadius: 4
       }]
     },
     options: {
       responsive: true,
       plugins: {
         legend: { display: false },
-        datalabels: {
-          color: '#fff', anchor: 'end', align: 'top',
-          font: { weight: 'bold', size: 10 },
-          formatter: function(value) { return value.toFixed(2); },
-          backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 4, padding: 4
-        }
+        datalabels: { color: '#fff', anchor: 'end', align: 'top',
+          font: { weight: 'bold', size: 10 }, formatter: function(v){ return v.toFixed(2); },
+          backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 4, padding: 4 }
       },
       scales: {
         y: { grid: { color: gridColor }, beginAtZero: true, title: { display: true, text: 'M/100k', color: textColor } },
@@ -1273,9 +1247,7 @@ function renderCharts() {
     }
   });
 
-  // ============================================================
-  // 📊 GRÁFICO TOTAL/100k (T+U+M) - CON ESCALA DE COLORES
-  // ============================================================
+  // Total
   var topTotal = data.resumenTelar.slice(0, 10).sort(function(a, b) { return b['Total/100k'] - a['Total/100k']; });
   charts.total = new Chart(document.getElementById('chartTotal'), {
     type: 'bar',
@@ -1287,29 +1259,19 @@ function renderCharts() {
         backgroundColor: topTotal.map(function(t) {
           var val = t['Total/100k'];
           if (val < 6) return '#10b981';
-          else if (val >= 6 && val <= 8) return '#f59e0b';
+          else if (val <= 8) return '#f59e0b';
           else return '#ef4444';
         }),
-        borderColor: topTotal.map(function(t) {
-          var val = t['Total/100k'];
-          if (val < 6) return '#10b981';
-          else if (val >= 6 && val <= 8) return '#f59e0b';
-          else return '#ef4444';
-        }),
-        borderWidth: 1,
-        borderRadius: 4
+        borderWidth: 1, borderRadius: 4
       }]
     },
     options: {
       responsive: true,
       plugins: {
         legend: { display: false },
-        datalabels: {
-          color: '#fff', anchor: 'end', align: 'top',
-          font: { weight: 'bold', size: 10 },
-          formatter: function(value) { return value.toFixed(2); },
-          backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 4, padding: 4
-        }
+        datalabels: { color: '#fff', anchor: 'end', align: 'top',
+          font: { weight: 'bold', size: 10 }, formatter: function(v){ return v.toFixed(2); },
+          backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 4, padding: 4 }
       },
       scales: {
         y: { grid: { color: gridColor }, beginAtZero: true, title: { display: true, text: 'Total/100k', color: textColor } },
@@ -1346,10 +1308,7 @@ function renderTabla(id, data, cols) {
   document.getElementById(id).innerHTML = html;
 }
 
-// ============================================================
-// 🏭 TABLA DE TELARES CON FILTROS
-// ============================================================
-
+// ---------- TELARES ----------
 function renderTelarResumen(resumenTelar) {
   var html = '';
   if (!resumenTelar || resumenTelar.length === 0) {
@@ -1371,11 +1330,13 @@ function renderTelarResumen(resumenTelar) {
 }
 
 function renderTelarFiltrado(telar, fechaDesde, fechaHasta, estilo) {
-  // Recolectar todos los registros de todas las fechas en allData
   var todosLosRegistros = [];
   Object.keys(allData).forEach(function(fecha) {
     var datosDia = allData[fecha].datos || [];
+    // 🔷 Respetar contrato vigente también en este filtro
+    var permitidos = (currentContrato !== CONTRATO_TODOS) ? CONTRATOS[currentContrato] : null;
     datosDia.forEach(function(row) {
+      if (permitidos && permitidos.indexOf(row['Telar']) === -1) return;
       todosLosRegistros.push(row);
     });
   });
@@ -1385,55 +1346,37 @@ function renderTelarFiltrado(telar, fechaDesde, fechaHasta, estilo) {
     return;
   }
 
-  // Aplicar filtros
   var filtrados = todosLosRegistros.filter(function(row) {
-    var cumpleTelar = true;
+    var cumpleTelar = (telar === 'all') ? true : (row['Telar'] === telar);
     var cumpleFecha = true;
     var cumpleEstilo = true;
 
-    if (telar !== 'all') {
-      cumpleTelar = (row['Telar'] === telar);
-    }
-
-    if (fechaDesde) {
-      var fechaRow = row['Fecha'];
-      if (fechaRow) {
-        var partes = fechaRow.split('/');
-        if (partes.length === 3) {
-          var fechaObj = new Date(partes[2], partes[1]-1, partes[0]);
-          var fechaDesdeObj = new Date(fechaDesde);
-          if (fechaObj < fechaDesdeObj) cumpleFecha = false;
-        }
+    if (fechaDesde && row['Fecha']) {
+      var p = row['Fecha'].split('/');
+      if (p.length === 3) {
+        var fObj = new Date(p[2], p[1]-1, p[0]);
+        if (fObj < new Date(fechaDesde)) cumpleFecha = false;
       }
     }
-    if (fechaHasta) {
-      var fechaRow2 = row['Fecha'];
-      if (fechaRow2) {
-        var partes2 = fechaRow2.split('/');
-        if (partes2.length === 3) {
-          var fechaObj2 = new Date(partes2[2], partes2[1]-1, partes2[0]);
-          var fechaHastaObj = new Date(fechaHasta);
-          if (fechaObj2 > fechaHastaObj) cumpleFecha = false;
-        }
+    if (fechaHasta && row['Fecha']) {
+      var p2 = row['Fecha'].split('/');
+      if (p2.length === 3) {
+        var fObj2 = new Date(p2[2], p2[1]-1, p2[0]);
+        if (fObj2 > new Date(fechaHasta)) cumpleFecha = false;
       }
     }
-
     if (estilo && estilo.trim() !== '') {
-      var est = str(row['Estilo'] || '').toLowerCase();
-      cumpleEstilo = est.includes(estilo.toLowerCase());
+      cumpleEstilo = str(row['Estilo'] || '').toLowerCase().includes(estilo.toLowerCase());
     }
-
     return cumpleTelar && cumpleFecha && cumpleEstilo;
   });
 
-  // Mostrar tabla
   if (filtrados.length === 0) {
     document.getElementById('tableTelar').innerHTML = '<p>No se encontraron registros con los filtros aplicados.</p>';
     return;
   }
 
-  // Definir columnas a mostrar (relevantes)
-  var columnas = ['Fecha', 'Día', 'Turno', 'Actividad', 'Telar', 'Operador', 'Estilo', 'PPP', 'Metros tejidos', 'RPM', '% Efic. Máquina', '% Efic. Operador', 'Trama/100k', 'Urd/100k', 'Manual/100k', 'U+T/100k', 'Total/100k'];
+  var columnas = ['Fecha','Día','Turno','Actividad','Telar','Operador','Estilo','PPP','Metros tejidos','RPM','% Efic. Máquina','% Efic. Operador','Trama/100k','Urd/100k','Manual/100k','U+T/100k','Total/100k'];
   var html = '<table><thead><tr>' + columnas.map(function(c) { return '<th>' + c + '</th>'; }).join('') + '</tr></thead><tbody>';
   filtrados.forEach(function(row) {
     html += '<tr>' + columnas.map(function(c) {
@@ -1449,31 +1392,29 @@ function renderTelarFiltrado(telar, fechaDesde, fechaHasta, estilo) {
 
 function poblarSelectorTelares() {
   var select = document.getElementById('filtro-telar');
-  // Limpiar opciones excepto "Todos"
-  while (select.options.length > 1) {
-    select.remove(1);
-  }
-  // Obtener todos los telares únicos de allData
+  if (!select) return;
+  while (select.options.length > 1) select.remove(1);
+
+  var permitidos = (currentContrato !== CONTRATO_TODOS) ? CONTRATOS[currentContrato] : null;
   var telaresSet = new Set();
   Object.keys(allData).forEach(function(fecha) {
-    var datos = allData[fecha].datos || [];
-    datos.forEach(function(row) {
+    (allData[fecha].datos || []).forEach(function(row) {
       var t = row['Telar'];
-      if (t && t !== 'S/N') {
-        telaresSet.add(t);
-      }
+      if (!t || t === 'S/N') return;
+      if (permitidos && permitidos.indexOf(t) === -1) return;
+      telaresSet.add(t);
     });
   });
-  var telares = Array.from(telaresSet).sort(function(a,b) { return parseInt(a) - parseInt(b); });
-  telares.forEach(function(t) {
-    var option = document.createElement('option');
-    option.value = t;
-    option.textContent = t;
-    select.appendChild(option);
-  });
+  Array.from(telaresSet)
+    .sort(function(a,b) { return parseInt(a) - parseInt(b); })
+    .forEach(function(t) {
+      var o = document.createElement('option');
+      o.value = t; o.textContent = t;
+      select.appendChild(o);
+    });
 }
 
-// ---------- EVENTOS FILTROS ----------
+// ---------- EVENTOS FILTROS TELAR ----------
 document.getElementById('btnFiltrarTelar').addEventListener('click', function() {
   var telar = document.getElementById('filtro-telar').value;
   var fechaDesde = document.getElementById('filtro-fecha-desde').value;
@@ -1487,16 +1428,18 @@ document.getElementById('btnLimpiarFiltros').addEventListener('click', function(
   document.getElementById('filtro-fecha-desde').value = '';
   document.getElementById('filtro-fecha-hasta').value = '';
   document.getElementById('filtro-estilo').value = '';
-  // Volver a mostrar resumen
-  if (currentFecha && allData[currentFecha]) {
-    renderTelarResumen(allData[currentFecha].resumenTelar);
-  }
+  // 🔷 Reset contrato también
+  currentContrato = CONTRATO_TODOS;
+  var cSel = document.getElementById('contractSelect');
+  if (cSel) cSel.value = 'all';
+  renderAll();
 });
 
-// ---------- RENDER ALERTAS ----------
-function renderAlertas() {
+// ---------- ALERTAS ----------
+function renderAlertas(dataArg) {
   var alerts = [];
-  var data = allData[currentFecha];
+  var data = dataArg || vistaActual;
+  if (!data) return;
   var benchmark = getBenchmark();
 
   data.basePPP.forEach(function(p) {
@@ -1504,39 +1447,45 @@ function renderAlertas() {
       alerts.push({ type: 'warning', title: '⚠️ PPP múltiple en "' + p['Estilo'] + '"', desc: 'Detectados ' + p['PPP count'] + ' valores: ' + p['PPP detectados'] });
     }
   });
-
   data.resumenEstilo.filter(function(e) { return e['U+T/100k'] >= 6; }).forEach(function(e) {
     alerts.push({ type: 'critical', title: '🔴 Estilo crítico: ' + e['Estilo'], desc: 'U+T/100k = ' + fmt(e['U+T/100k']) + ' (' + e['Metros'] + 'm)' });
   });
-
   data.resumenTelar.filter(function(t) { return t['U+T/100k'] >= benchmark * 1.5; }).forEach(function(t) {
     alerts.push({ type: 'critical', title: '🔴 Telar ' + t['Telar'] + ' fuera de control', desc: 'U+T/100k = ' + fmt(t['U+T/100k']) + ' · Estilo: ' + t['Estilo dominante'] });
   });
-
   if (data.kpiGlobal['U+T / 100k'] >= benchmark) {
-    alerts.push({ type: 'warning', title: '⚠️ Sala supera benchmark (' + benchmark + ')', desc: 'U+T/100k global = ' + fmt(data.kpiGlobal['U+T / 100k']) });
+    alerts.push({ type: 'warning', title: '⚠️ ' + (currentContrato === CONTRATO_TODOS ? 'Sala' : 'Contrato ' + currentContrato) + ' supera benchmark (' + benchmark + ')', desc: 'U+T/100k = ' + fmt(data.kpiGlobal['U+T / 100k']) });
   }
 
   if (!alerts.length) {
     document.getElementById('alertasContent').innerHTML = '<div class="alert-item" style="background:rgba(16,185,129,0.1);border-color:var(--success);"><strong>✅ Sin alertas</strong><br>Todo dentro de los parámetros esperados.</div>';
     return;
   }
-
   document.getElementById('alertasContent').innerHTML = alerts.map(function(a) {
     return '<div class="alert-item ' + (a.type === 'critical' ? 'critical' : '') + '"><strong>' + a.title + '</strong><br><span style="font-size:12px;color:var(--text-secondary);">' + a.desc + '</span></div>';
   }).join('');
 }
 
-// ---------- RENDER HISTORIAL ----------
+// ---------- HISTORIAL (por contrato) ----------
 function renderHistorial() {
   var hist = loadHistory();
-  var fechas = Object.keys(hist).sort();
-  
+  // 🔷 Filtramos solo fechas que tengan resumen para el contrato vigente
+  var fechas = Object.keys(hist)
+    .filter(function(f) { return hist[f] && hist[f][currentContrato]; })
+    .sort(function(a, b) {
+      var da = hist[a][currentContrato].timestamp || 0;
+      var db = hist[b][currentContrato].timestamp || 0;
+      return da - db;
+    });
+
+  var contLabel = (currentContrato === CONTRATO_TODOS) ? 'Todos los contratos' : 'Contrato ' + currentContrato;
   if (!fechas.length) {
-    document.getElementById('historialContent').innerHTML = '<p>No hay historial guardado.</p>';
+    document.getElementById('historialContent').innerHTML =
+      '<p>No hay historial guardado para <strong>' + contLabel + '</strong>.</p>';
     return;
   }
 
+  // Semana en curso (lunes a domingo) según última fecha
   var ultimaFechaStr = fechas[fechas.length - 1];
   var partes = ultimaFechaStr.split('/').map(Number);
   var dd = partes[0], mm = partes[1], yyyy = partes[2];
@@ -1558,19 +1507,35 @@ function renderHistorial() {
 
   var html = '';
   if (weekData.length > 0) {
-    var avgUT = weekData.reduce(function(s, f) { return s + hist[f].kpi['U+T / 100k']; }, 0) / weekData.length;
-    var totalMetros = weekData.reduce(function(s, f) { return s + hist[f].kpi['Metros tejidos activos']; }, 0);
-    var avgTotal = weekData.reduce(function(s, f) { return s + hist[f].kpi['Total / 100k']; }, 0) / weekData.length;
+    var avgUT = weekData.reduce(function(s, f) { return s + (hist[f][currentContrato].kpi['U+T / 100k'] || 0); }, 0) / weekData.length;
+    var totalMetros = weekData.reduce(function(s, f) { return s + (hist[f][currentContrato].kpi['Metros tejidos activos'] || 0); }, 0);
+    var avgTotal = weekData.reduce(function(s, f) { return s + (hist[f][currentContrato].kpi['Total / 100k'] || 0); }, 0) / weekData.length;
+    var avgActivos = weekData.reduce(function(s, f) { return s + (hist[f][currentContrato].kpi['Telares Activos'] || 0); }, 0) / weekData.length;
 
-    html += '<div class="week-summary"><div class="section-title">📅 Resumen Semanal (' + monday.toLocaleDateString('es-ES') + ' - ' + sunday.toLocaleDateString('es-ES') + ')</div><div style="margin-bottom:15px;padding:10px;background:var(--glass);border-radius:8px;"><strong>Días procesados:</strong> ' + weekData.length + ' de 5 días laborables<br><strong>Fechas incluidas:</strong> ' + weekData.join(', ') + '</div><div class="kpi-grid"><div class="kpi"><div class="label">Días procesados</div><div class="value">' + weekData.length + '</div></div><div class="kpi"><div class="label">U+T/100k promedio</div><div class="value">' + fmt(avgUT) + '</div></div><div class="kpi"><div class="label">Total/100k promedio</div><div class="value">' + fmt(avgTotal) + '</div></div><div class="kpi"><div class="label">Metros semanales</div><div class="value">' + fmt(totalMetros, 0) + '</div></div></div></div><h3 style="margin:20px 0 10px;">📊 Historial completo de días</h3>';
+    html += '<div class="week-summary"><div class="section-title">📅 Resumen Semanal · ' + contLabel + ' (' + monday.toLocaleDateString('es-ES') + ' - ' + sunday.toLocaleDateString('es-ES') + ')</div>' +
+      '<div style="margin-bottom:15px;padding:10px;background:var(--glass);border-radius:8px;">' +
+      '<strong>Días procesados:</strong> ' + weekData.length + ' de 5 días laborables<br>' +
+      '<strong>Fechas incluidas:</strong> ' + weekData.join(', ') + '</div>' +
+      '<div class="kpi-grid">' +
+      '<div class="kpi"><div class="label">Días procesados</div><div class="value">' + weekData.length + '</div></div>' +
+      '<div class="kpi"><div class="label">U+T/100k promedio</div><div class="value">' + fmt(avgUT) + '</div></div>' +
+      '<div class="kpi"><div class="label">Total/100k promedio</div><div class="value">' + fmt(avgTotal) + '</div></div>' +
+      '<div class="kpi"><div class="label">Telares activos prom.</div><div class="value">' + fmt(avgActivos, 1) + '</div></div>' +
+      '<div class="kpi"><div class="label">Metros semanales</div><div class="value">' + fmt(totalMetros, 0) + '</div></div>' +
+      '</div></div>' +
+      '<h3 style="margin:20px 0 10px;">📊 Historial completo · ' + contLabel + '</h3>';
+  } else {
+    html += '<h3 style="margin:0 0 10px;">📊 Historial completo · ' + contLabel + '</h3>';
   }
 
   html += fechas.slice().reverse().map(function(f) {
-    var h = hist[f];
-    var ut = h.kpi['U+T / 100k'];
+    var h = hist[f][currentContrato];
+    var ut = h.kpi['U+T / 100k'] || 0;
     var diag = diagUmasT(ut);
     var diagClass = ut < 4.5 ? 'badge-ok' : ut < 6 ? 'badge-warn' : 'badge-bad';
-    return '<div class="history-item"><div><div style="font-weight:600;">📅 ' + f + '</div><div style="font-size:12px;color:var(--text-secondary);">' + h.fileName + '</div></div><div style="text-align:right;"><div><strong>U+T:</strong> ' + fmt(ut) + ' <span class="badge ' + diagClass + '">' + diag + '</span></div><div style="font-size:12px;color:var(--text-secondary);">' + h.kpi['Registros activos Capa 2'] + ' activos · ' + fmt(h.kpi['Metros tejidos activos'],0) + 'm</div></div></div>';
+    var activos = h.kpi['Telares Activos'] || 0;
+    var totales = h.kpi['Telares Totales'] || 0;
+    return '<div class="history-item"><div><div style="font-weight:600;">📅 ' + f + '</div><div style="font-size:12px;color:var(--text-secondary);">' + h.fileName + '</div></div><div style="text-align:right;"><div><strong>U+T:</strong> ' + fmt(ut) + ' <span class="badge ' + diagClass + '">' + diag + '</span></div><div style="font-size:12px;color:var(--text-secondary);">' + activos + '/' + totales + ' telares activos · ' + fmt(h.kpi['Metros tejidos activos'] || 0, 0) + 'm</div></div></div>';
   }).join('');
 
   document.getElementById('historialContent').innerHTML = html;
@@ -1582,7 +1547,7 @@ document.getElementById('btnExportAll').addEventListener('click', function() {
   Object.keys(allData).forEach(function(fecha) {
     var data = allData[fecha];
     var fechaClean = fecha.replace(/\//g,'-');
-    var datosOrdenados = data.datos.map(function(row) {
+    var datosOrdenados = (data.datos || []).map(function(row) {
       var out = {};
       ORDEN_PRUEBA29.forEach(function(k) { out[k] = row[k] || ''; });
       return out;
@@ -1598,7 +1563,7 @@ document.getElementById('btnExportSeparate').addEventListener('click', function(
     var data = allData[fecha];
     var wb = XLSX.utils.book_new();
     var fechaClean = fecha.replace(/\//g,'-');
-    var datosOrdenados = data.datos.map(function(row) {
+    var datosOrdenados = (data.datos || []).map(function(row) {
       var out = {};
       ORDEN_PRUEBA29.forEach(function(k) { out[k] = row[k] || ''; });
       return out;
@@ -1625,17 +1590,13 @@ document.querySelectorAll('.tab').forEach(function(tab) {
     document.getElementById('tab-' + tabId).classList.add('active');
     if (tabId === 'dashboard' && currentFecha) renderCharts();
     if (tabId === 'telar' && currentFecha) {
-      // Si la pestaña telar se activa, mostrar resumen o filtros según estado
       var telarSelect = document.getElementById('filtro-telar');
-      if (telarSelect && telarSelect.value === 'all' && 
+      if (telarSelect && telarSelect.value === 'all' &&
           document.getElementById('filtro-fecha-desde').value === '' &&
           document.getElementById('filtro-fecha-hasta').value === '' &&
           document.getElementById('filtro-estilo').value === '') {
-        if (allData[currentFecha]) {
-          renderTelarResumen(allData[currentFecha].resumenTelar);
-        }
+        renderTelarResumen(vistaActual ? vistaActual.resumenTelar : []);
       } else {
-        // Si hay filtros aplicados, volver a aplicar
         document.getElementById('btnFiltrarTelar').click();
       }
     }
@@ -1644,85 +1605,59 @@ document.querySelectorAll('.tab').forEach(function(tab) {
 
 // ---------- INIT ----------
 initTheme();
-
-setTimeout(function() {
-  cargarArchivosPrecargados();
-}, 500);
+setTimeout(function() { cargarArchivosPrecargados(); }, 500);
 </script>
 
 <!-- ========================================================== -->
 <!-- FORMULARIO: APORTES MÚLTIPLES DE VALOR AGREGADO - TELARES  -->
 <!-- ========================================================== -->
 <section id="formulario-aportes" style="max-width: 900px; margin: 40px auto; padding: 30px; background: linear-gradient(135deg, #f8f5f0 0%, #efe9e0 100%); border-radius: 16px; box-shadow: 0 8px 30px rgba(0,0,0,0.12); font-family: 'Segoe UI', Arial, sans-serif; border: 1px solid #e0d6c8;">
-  
-  <!-- TÍTULO -->
   <div style="text-align: center; margin-bottom: 25px; border-bottom: 3px solid #8b6f4c; padding-bottom: 15px;">
     <h2 style="color: #4a3520; font-size: 26px; margin: 0; letter-spacing: 1px;">🏺 Aportes de Valor Agregado</h2>
     <p style="color: #7a654f; font-size: 14px; margin: 5px 0 0 0;">Comparte tu conocimiento sobre telares, lotes, estilos y clases</p>
     <p style="color: #8b6f4c; font-size: 13px; font-weight: 500; margin: 3px 0 0 0;">💡 Puedes agregar múltiples líneas de aportes en un solo envío</p>
   </div>
-  
-  <!-- FORMULARIO PRINCIPAL -->
-  <form name="aportes-telares-multiples" method="POST" data-netlify="true" 
+
+  <form name="aportes-telares-multiples" method="POST" data-netlify="true"
         style="display: flex; flex-direction: column; gap: 15px;">
-    
-    <!-- Campo oculto OBLIGATORIO para Netlify -->
     <input type="hidden" name="form-name" value="aportes-telares-multiples" />
-    
-    <!-- ======================================== -->
-    <!-- 1. NOMBRE DEL APORTANTE                  -->
-    <!-- ======================================== -->
+
     <div>
       <label for="nombre-aportante" style="display: block; font-weight: 600; color: #4a3520; margin-bottom: 4px; font-size: 14px;">
         👤 Identificacion <span style="color: #a0522d;">*</span>
       </label>
-      <input type="text" id="nombre-aportante" name="nombre-aportante" 
+      <input type="text" id="nombre-aportante" name="nombre-aportante"
              placeholder="Ej: Nombre Apellido" required
              style="width: 100%; padding: 10px 12px; border: 2px solid #d4c8b8; border-radius: 8px; font-size: 15px; background: white; box-sizing: border-box;" />
     </div>
-    
-    <!-- ======================================== -->
-    <!-- 2. TABLA DE APORTES MÚLTIPLES            -->
-    <!-- ======================================== -->
+
     <div style="background: white; border-radius: 10px; padding: 20px; border: 2px solid #d4c8b8; overflow-x: auto;">
-      
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
         <h3 style="color: #4a3520; font-size: 16px; margin: 0;">📋 Líneas de Aportes</h3>
-        <button type="button" id="agregar-fila" 
+        <button type="button" id="agregar-fila"
                 style="background: #8b6f4c; color: white; border: none; padding: 6px 16px; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; transition: background 0.3s;"
                 onmouseover="this.style.background='#6b4c3b'" onmouseout="this.style.background='#8b6f4c'">
           ➕ Agregar Línea
         </button>
       </div>
-      
-      <!-- CONTENEDOR DE FILAS DE APORTES -->
+
       <div id="contenedor-filas">
-        
-        <!-- FILA 1 (por defecto) -->
-        <div class="fila-aporte" style="display: grid; grid-template-columns: 70px 100px 1fr 1fr 1.8fr; gap: 8px; margin-bottom: 10px; padding: 10px; background: #faf8f5; border-radius: 8px; align-items: center;">
-          
-          <!-- Telar (3 dígitos: 001-113) -->
+        <div class="fila-aporte" style="display: grid; grid-template-columns: 70px 100px 1fr 1fr 1.8fr 30px; gap: 8px; margin-bottom: 10px; padding: 10px; background: #faf8f5; border-radius: 8px; align-items: center;">
           <div>
             <label style="font-size: 11px; font-weight: 600; color: #4a3520; display: block; margin-bottom: 2px;">Telar</label>
             <input type="number" name="telar[]" min="1" max="113" placeholder="001" required
                    style="width: 100%; padding: 6px 4px; border: 2px solid #d4c8b8; border-radius: 6px; font-size: 14px; text-align: center; box-sizing: border-box;" />
           </div>
-          
-          <!-- Lote (8 dígitos alfanuméricos) -->
           <div>
             <label style="font-size: 11px; font-weight: 600; color: #4a3520; display: block; margin-bottom: 2px;">Lote</label>
             <input type="text" name="lote[]" maxlength="6" placeholder="Ej: 102156" required
                    style="width: 100%; padding: 6px 4px; border: 2px solid #d4c8b8; border-radius: 6px; font-size: 14px; text-align: center; box-sizing: border-box; text-transform: uppercase;" />
           </div>
-          
-          <!-- Estilo (texto libre) -->
           <div>
             <label style="font-size: 11px; font-weight: 600; color: #4a3520; display: block; margin-bottom: 2px;">Estilo</label>
-            <input type="text" name="estilo[]" placeholder="Ej: Arandano, Alexa, Bulldenim 11, Drill 419, Victoria 250..." required
+            <input type="text" name="estilo[]" placeholder="Ej: Arandano, Alexa..." required
                    style="width: 100%; padding: 6px 8px; border: 2px solid #d4c8b8; border-radius: 6px; font-size: 14px; box-sizing: border-box;" />
           </div>
-          
-          <!-- Clase (desplegable) -->
           <div>
             <label style="font-size: 11px; font-weight: 600; color: #4a3520; display: block; margin-bottom: 2px;">Clase</label>
             <select name="clase[]" required style="width: 100%; padding: 6px 4px; border: 2px solid #d4c8b8; border-radius: 6px; font-size: 14px; background: white; box-sizing: border-box;">
@@ -1734,99 +1669,66 @@ setTimeout(function() {
               <option value="Auditoría">Auditoría</option>
             </select>
           </div>
-          
-          <!-- Descripción del Aporte -->
           <div>
             <label style="font-size: 11px; font-weight: 600; color: #4a3520; display: block; margin-bottom: 2px;">Descripción</label>
             <input type="text" name="descripcion[]" placeholder="Ej: Técnica de tejido, material, observación..." required
                    style="width: 100%; padding: 6px 8px; border: 2px solid #d4c8b8; border-radius: 6px; font-size: 14px; box-sizing: border-box;" />
           </div>
-          
-          <!-- Botón eliminar fila -->
           <div style="text-align: center;">
-            <button type="button" class="eliminar-fila" 
+            <button type="button" class="eliminar-fila"
                     style="background: #dc3545; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; font-size: 14px; font-weight: bold; cursor: pointer; line-height: 1; transition: background 0.3s;"
                     onmouseover="this.style.background='#c82333'" onmouseout="this.style.background='#dc3545'">
               ✕
             </button>
           </div>
-          
         </div>
-        
       </div>
-      <!-- FIN contenedor-filas -->
-      
+
       <p style="font-size: 12px; color: #7a654f; margin: 8px 0 0 0; text-align: right;">
         ⚡ Telar: 1-113 | Lote: 8 caracteres alfanuméricos
       </p>
-      
     </div>
-    <!-- FIN tabla de aportes -->
-    
-    <!-- ======================================== -->
-    <!-- 3. BOTÓN DE ENVÍO                        -->
-    <!-- ======================================== -->
-    <button type="submit" 
+
+    <button type="submit"
             style="background: linear-gradient(135deg, #6b4c3b, #4a3520); color: white; padding: 14px 28px; border: none; border-radius: 8px; font-size: 18px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; margin-top: 5px; letter-spacing: 1px; box-shadow: 0 4px 12px rgba(74, 53, 32, 0.3);"
             onmouseover="this.style.transform='scale(1.02)'; this.style.boxShadow='0 6px 20px rgba(74, 53, 32, 0.4)';"
             onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 4px 12px rgba(74, 53, 32, 0.3)';">
       📤 Enviar Todos los Aportes
     </button>
-    
-    <!-- ======================================== -->
-    <!-- 4. MENSAJE DE CONFIRMACIÓN               -->
-    <!-- ======================================== -->
+
     <div id="mensaje-confirmacion" style="display: none; background: #d4edda; color: #155724; padding: 14px; border-radius: 8px; text-align: center; font-weight: 500; border: 1px solid #b7d7c2; margin-top: 5px;">
       ✅ ¡Gracias por tus aportes! Toda la información ha sido recibida y será procesada.
     </div>
-    
   </form>
 </section>
 
-<!-- ========================================================== -->
-<!-- JAVASCRIPT: AGREGAR Y ELIMINAR FILAS DINÁMICAMENTE        -->
-<!-- ========================================================== -->
 <script>
 (function() {
-  
-  // Elementos del DOM
   const contenedor = document.getElementById('contenedor-filas');
   const btnAgregar = document.getElementById('agregar-fila');
-  
-  // Contador de filas para IDs únicos
   let contadorFilas = 1;
-  
-  // Función para crear una nueva fila
+
   function crearFila() {
     contadorFilas++;
     const fila = document.createElement('div');
     fila.className = 'fila-aporte';
-    fila.style.cssText = 'display: grid; grid-template-columns: 70px 100px 1fr 1fr 1.8fr; gap: 8px; margin-bottom: 10px; padding: 10px; background: #faf8f5; border-radius: 8px; align-items: center;';
-    
-    // Generar HTML de la fila
+    fila.style.cssText = 'display: grid; grid-template-columns: 70px 100px 1fr 1fr 1.8fr 30px; gap: 8px; margin-bottom: 10px; padding: 10px; background: #faf8f5; border-radius: 8px; align-items: center;';
     fila.innerHTML = `
-      <!-- Telar -->
       <div>
         <label style="font-size: 11px; font-weight: 600; color: #4a3520; display: block; margin-bottom: 2px;">Telar</label>
         <input type="number" name="telar[]" min="1" max="113" placeholder="001" required
                style="width: 100%; padding: 6px 4px; border: 2px solid #d4c8b8; border-radius: 6px; font-size: 14px; text-align: center; box-sizing: border-box;" />
       </div>
-      
-      <!-- Lote -->
       <div>
         <label style="font-size: 11px; font-weight: 600; color: #4a3520; display: block; margin-bottom: 2px;">Lote</label>
         <input type="text" name="lote[]" maxlength="8" placeholder="LOTE-001" required
                style="width: 100%; padding: 6px 4px; border: 2px solid #d4c8b8; border-radius: 6px; font-size: 14px; text-align: center; box-sizing: border-box; text-transform: uppercase;" />
       </div>
-      
-      <!-- Estilo -->
       <div>
         <label style="font-size: 11px; font-weight: 600; color: #4a3520; display: block; margin-bottom: 2px;">Estilo</label>
-        <input type="text" name="estilo[]" placeholder="Ej: Andino, Colonial, Moderno..." required
+        <input type="text" name="estilo[]" placeholder="Ej: Andino, Colonial..." required
                style="width: 100%; padding: 6px 8px; border: 2px solid #d4c8b8; border-radius: 6px; font-size: 14px; box-sizing: border-box;" />
       </div>
-      
-      <!-- Clase -->
       <div>
         <label style="font-size: 11px; font-weight: 600; color: #4a3520; display: block; margin-bottom: 2px;">Clase</label>
         <select name="clase[]" required style="width: 100%; padding: 6px 4px; border: 2px solid #d4c8b8; border-radius: 6px; font-size: 14px; background: white; box-sizing: border-box;">
@@ -1838,55 +1740,39 @@ setTimeout(function() {
           <option value="Auditoría">Auditoría</option>
         </select>
       </div>
-      
-      <!-- Descripción -->
       <div>
         <label style="font-size: 11px; font-weight: 600; color: #4a3520; display: block; margin-bottom: 2px;">Descripción</label>
         <input type="text" name="descripcion[]" placeholder="Ej: Técnica de tejido, material, observación..." required
                style="width: 100%; padding: 6px 8px; border: 2px solid #d4c8b8; border-radius: 6px; font-size: 14px; box-sizing: border-box;" />
       </div>
-      
-      <!-- Botón eliminar -->
       <div style="text-align: center;">
-        <button type="button" class="eliminar-fila" 
+        <button type="button" class="eliminar-fila"
                 style="background: #dc3545; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; font-size: 14px; font-weight: bold; cursor: pointer; line-height: 1; transition: background 0.3s;"
                 onmouseover="this.style.background='#c82333'" onmouseout="this.style.background='#dc3545'">
           ✕
         </button>
       </div>
     `;
-    
     return fila;
   }
-  
-  // Evento: Agregar fila
+
   btnAgregar.addEventListener('click', function() {
     const nuevaFila = crearFila();
     contenedor.appendChild(nuevaFila);
-    
-    // Asignar evento de eliminar a la nueva fila
     const btnEliminar = nuevaFila.querySelector('.eliminar-fila');
     btnEliminar.addEventListener('click', function() {
-      if (contenedor.children.length > 1) {
-        contenedor.removeChild(nuevaFila);
-      } else {
-        alert('Debe haber al menos una línea de aporte.');
-      }
+      if (contenedor.children.length > 1) contenedor.removeChild(nuevaFila);
+      else alert('Debe haber al menos una línea de aporte.');
     });
   });
-  
-  // Evento: Eliminar filas existentes
+
   document.querySelectorAll('.eliminar-fila').forEach(function(btn) {
     btn.addEventListener('click', function() {
       const fila = this.closest('.fila-aporte');
-      if (contenedor.children.length > 1) {
-        contenedor.removeChild(fila);
-      } else {
-        alert('Debe haber al menos una línea de aporte.');
-      }
+      if (contenedor.children.length > 1) contenedor.removeChild(fila);
+      else alert('Debe haber al menos una línea de aporte.');
     });
   });
-  
 })();
 </script>
 
