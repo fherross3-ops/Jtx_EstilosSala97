@@ -286,7 +286,8 @@ tr:hover td { background: var(--glass); }
         <div class="tab" data-tab="ppp">🔢 Base PPP</div>
         <div class="tab" data-tab="historial">📅 Historial</div>
         <div class="tab" data-tab="alertas">⚠️ Alertas</div>
-        <div class="tab" data-tab="valid">✅ Validación</div>
+<div class="tab" data-tab="aportes">📝 Aportes</div>
+<div class="tab" data-tab="valid">✅ Validación</div>
       </div>
 
       <div id="tab-dashboard" class="tab-content active">
@@ -325,8 +326,32 @@ tr:hover td { background: var(--glass); }
       </div>
       <div id="tab-ppp" class="tab-content"><div class="table-wrapper" id="tablePPP"></div></div>
       <div id="tab-historial" class="tab-content"><div id="historialContent"></div></div>
-      <div id="tab-alertas" class="tab-content"><div id="alertasContent"></div></div>
-      <div id="tab-valid" class="tab-content"><div class="table-wrapper" id="tableValid"></div></div>
+     
+<div id="tab-alertas" class="tab-content"><div id="alertasContent"></div></div>
+<div id="tab-aportes" class="tab-content">
+  <div class="filtros-telar">
+    <label>Telar:</label>
+    <input type="text" id="ap-filtro-telar" placeholder="Ej: 12" style="width:80px;">
+    <label>Clase:</label>
+    <select id="ap-filtro-clase">
+      <option value="">Todas</option>
+      <option value="Calidad">Calidad</option>
+      <option value="Mantenimiento">Mantenimiento</option>
+      <option value="Producción">Producción</option>
+      <option value="Planificación">Planificación</option>
+      <option value="Auditoría">Auditoría</option>
+    </select>
+    <label>Desde:</label>
+    <input type="date" id="ap-filtro-desde">
+    <button class="btn-filtrar" id="ap-btn-refresh">🔄 Recargar</button>
+    <span id="ap-filtro-info" style="font-size:12px;color:var(--text-secondary);"></span>
+  </div>
+  <div id="aportesContent"></div>
+</div>
+<div id="tab-valid" class="tab-content"><div class="table-wrapper" id="tableValid"></div></div>
+
+
+
     </div>
   </div>
 </div>
@@ -984,6 +1009,8 @@ function renderAll() {
   renderAlertas(vistaActual);
   renderHistorial();
   poblarSelectorTelares();
+// 🔷 Re-render aportes si ya se cargaron
+if (typeof renderAportes === 'function' && aportesCache.length) renderAportes();
 
   // Info de contrato
   var info = document.getElementById('contractInfo');
@@ -1588,7 +1615,8 @@ document.querySelectorAll('.tab').forEach(function(tab) {
     tab.classList.add('active');
     var tabId = tab.getAttribute('data-tab');
     document.getElementById('tab-' + tabId).classList.add('active');
-    if (tabId === 'dashboard' && currentFecha) renderCharts();
+   if (tabId === 'dashboard' && currentFecha) renderCharts();
+if (tabId === 'aportes') cargarYRenderAportes();
     if (tabId === 'telar' && currentFecha) {
       var telarSelect = document.getElementById('filtro-telar');
       if (telarSelect && telarSelect.value === 'all' &&
@@ -1611,20 +1639,17 @@ setTimeout(function() { cargarArchivosPrecargados(); }, 500);
 <!-- ========================================================== -->
 <!-- FORMULARIO: APORTES MÚLTIPLES DE VALOR AGREGADO - TELARES  -->
 <!-- ========================================================== -->
-<section id="formulario-aportes" style="max-width: 900px; margin: 40px auto; padding: 30px; background: linear-gradient(135deg, #f8f5f0 0%, #efe9e0 100%); border-radius: 16px; box-shadow: 0 8px 30px rgba(0,0,0,0.12); font-family: 'Segoe UI', Arial, sans-serif; border: 1px solid #e0d6c8;">
+<section id="formulario-aportes" style="max-width: 1000px; margin: 40px auto; padding: 30px; background: linear-gradient(135deg, #f8f5f0 0%, #efe9e0 100%); border-radius: 16px; box-shadow: 0 8px 30px rgba(0,0,0,0.12); font-family: 'Segoe UI', Arial, sans-serif; border: 1px solid #e0d6c8;">
   <div style="text-align: center; margin-bottom: 25px; border-bottom: 3px solid #8b6f4c; padding-bottom: 15px;">
     <h2 style="color: #4a3520; font-size: 26px; margin: 0; letter-spacing: 1px;">🏺 Aportes de Valor Agregado</h2>
     <p style="color: #7a654f; font-size: 14px; margin: 5px 0 0 0;">Comparte tu conocimiento sobre telares, lotes, estilos y clases</p>
     <p style="color: #8b6f4c; font-size: 13px; font-weight: 500; margin: 3px 0 0 0;">💡 Puedes agregar múltiples líneas de aportes en un solo envío</p>
   </div>
 
-  <form name="aportes-telares-multiples" method="POST" data-netlify="true"
-        style="display: flex; flex-direction: column; gap: 15px;">
-    <input type="hidden" name="form-name" value="aportes-telares-multiples" />
-
+  <form id="form-aportes" style="display: flex; flex-direction: column; gap: 15px;">
     <div>
       <label for="nombre-aportante" style="display: block; font-weight: 600; color: #4a3520; margin-bottom: 4px; font-size: 14px;">
-        👤 Identificacion <span style="color: #a0522d;">*</span>
+        👤 Identificación <span style="color: #a0522d;">*</span>
       </label>
       <input type="text" id="nombre-aportante" name="nombre-aportante"
              placeholder="Ej: Nombre Apellido" required
@@ -1635,7 +1660,7 @@ setTimeout(function() { cargarArchivosPrecargados(); }, 500);
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
         <h3 style="color: #4a3520; font-size: 16px; margin: 0;">📋 Líneas de Aportes</h3>
         <button type="button" id="agregar-fila"
-                style="background: #8b6f4c; color: white; border: none; padding: 6px 16px; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; transition: background 0.3s;"
+                style="background: #8b6f4c; color: white; border: none; padding: 6px 16px; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer;"
                 onmouseover="this.style.background='#6b4c3b'" onmouseout="this.style.background='#8b6f4c'">
           ➕ Agregar Línea
         </button>
@@ -1650,7 +1675,7 @@ setTimeout(function() { cargarArchivosPrecargados(); }, 500);
           </div>
           <div>
             <label style="font-size: 11px; font-weight: 600; color: #4a3520; display: block; margin-bottom: 2px;">Lote</label>
-            <input type="text" name="lote[]" maxlength="6" placeholder="Ej: 102156" required
+            <input type="text" name="lote[]" maxlength="8" placeholder="LOTE-001" required
                    style="width: 100%; padding: 6px 4px; border: 2px solid #d4c8b8; border-radius: 6px; font-size: 14px; text-align: center; box-sizing: border-box; text-transform: uppercase;" />
           </div>
           <div>
@@ -1676,40 +1701,34 @@ setTimeout(function() { cargarArchivosPrecargados(); }, 500);
           </div>
           <div style="text-align: center;">
             <button type="button" class="eliminar-fila"
-                    style="background: #dc3545; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; font-size: 14px; font-weight: bold; cursor: pointer; line-height: 1; transition: background 0.3s;"
-                    onmouseover="this.style.background='#c82333'" onmouseout="this.style.background='#dc3545'">
-              ✕
-            </button>
+                    style="background: #dc3545; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; font-size: 14px; font-weight: bold; cursor: pointer; line-height: 1;">✕</button>
           </div>
         </div>
       </div>
 
       <p style="font-size: 12px; color: #7a654f; margin: 8px 0 0 0; text-align: right;">
-        ⚡ Telar: 1-113 | Lote: 8 caracteres alfanuméricos
+        ⚡ Telar: 1–113 | Lote: hasta 8 caracteres alfanuméricos
       </p>
     </div>
 
     <button type="submit"
-            style="background: linear-gradient(135deg, #6b4c3b, #4a3520); color: white; padding: 14px 28px; border: none; border-radius: 8px; font-size: 18px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; margin-top: 5px; letter-spacing: 1px; box-shadow: 0 4px 12px rgba(74, 53, 32, 0.3);"
-            onmouseover="this.style.transform='scale(1.02)'; this.style.boxShadow='0 6px 20px rgba(74, 53, 32, 0.4)';"
-            onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 4px 12px rgba(74, 53, 32, 0.3)';">
+            style="background: linear-gradient(135deg, #6b4c3b, #4a3520); color: white; padding: 14px 28px; border: none; border-radius: 8px; font-size: 18px; font-weight: 600; cursor: pointer; letter-spacing: 1px; box-shadow: 0 4px 12px rgba(74, 53, 32, 0.3);">
       📤 Enviar Todos los Aportes
     </button>
 
-    <div id="mensaje-confirmacion" style="display: none; background: #d4edda; color: #155724; padding: 14px; border-radius: 8px; text-align: center; font-weight: 500; border: 1px solid #b7d7c2; margin-top: 5px;">
-      ✅ ¡Gracias por tus aportes! Toda la información ha sido recibida y será procesada.
+    <div id="mensaje-confirmacion" style="display: none; background: #d4edda; color: #155724; padding: 14px; border-radius: 8px; text-align: center; font-weight: 500; border: 1px solid #b7d7c2;">
+      ✅ ¡Gracias por tus aportes! Se registraron en el histórico.
     </div>
   </form>
 </section>
+
 
 <script>
 (function() {
   const contenedor = document.getElementById('contenedor-filas');
   const btnAgregar = document.getElementById('agregar-fila');
-  let contadorFilas = 1;
 
   function crearFila() {
-    contadorFilas++;
     const fila = document.createElement('div');
     fila.className = 'fila-aporte';
     fila.style.cssText = 'display: grid; grid-template-columns: 70px 100px 1fr 1fr 1.8fr 30px; gap: 8px; margin-bottom: 10px; padding: 10px; background: #faf8f5; border-radius: 8px; align-items: center;';
@@ -1726,7 +1745,7 @@ setTimeout(function() { cargarArchivosPrecargados(); }, 500);
       </div>
       <div>
         <label style="font-size: 11px; font-weight: 600; color: #4a3520; display: block; margin-bottom: 2px;">Estilo</label>
-        <input type="text" name="estilo[]" placeholder="Ej: Andino, Colonial..." required
+        <input type="text" name="estilo[]" placeholder="Ej: Arandano, Alexa..." required
                style="width: 100%; padding: 6px 8px; border: 2px solid #d4c8b8; border-radius: 6px; font-size: 14px; box-sizing: border-box;" />
       </div>
       <div>
@@ -1747,21 +1766,17 @@ setTimeout(function() { cargarArchivosPrecargados(); }, 500);
       </div>
       <div style="text-align: center;">
         <button type="button" class="eliminar-fila"
-                style="background: #dc3545; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; font-size: 14px; font-weight: bold; cursor: pointer; line-height: 1; transition: background 0.3s;"
-                onmouseover="this.style.background='#c82333'" onmouseout="this.style.background='#dc3545'">
-          ✕
-        </button>
+                style="background: #dc3545; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; font-size: 14px; font-weight: bold; cursor: pointer; line-height: 1;">✕</button>
       </div>
     `;
     return fila;
   }
 
   btnAgregar.addEventListener('click', function() {
-    const nuevaFila = crearFila();
-    contenedor.appendChild(nuevaFila);
-    const btnEliminar = nuevaFila.querySelector('.eliminar-fila');
-    btnEliminar.addEventListener('click', function() {
-      if (contenedor.children.length > 1) contenedor.removeChild(nuevaFila);
+    const nueva = crearFila();
+    contenedor.appendChild(nueva);
+    nueva.querySelector('.eliminar-fila').addEventListener('click', function() {
+      if (contenedor.children.length > 1) contenedor.removeChild(nueva);
       else alert('Debe haber al menos una línea de aporte.');
     });
   });
@@ -1773,8 +1788,147 @@ setTimeout(function() { cargarArchivosPrecargados(); }, 500);
       else alert('Debe haber al menos una línea de aporte.');
     });
   });
+
+  // -------- Envío al backend --------
+  document.getElementById('form-aportes').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const nombre = document.getElementById('nombre-aportante').value.trim();
+    if (!nombre) { alert('Falta tu identificación.'); return; }
+
+    const filas = document.querySelectorAll('#contenedor-filas .fila-aporte');
+    const aportes = [];
+    for (const f of filas) {
+      const telar = f.querySelector('input[name="telar[]"]').value;
+      const lote = f.querySelector('input[name="lote[]"]').value;
+      const estilo = f.querySelector('input[name="estilo[]"]').value;
+      const clase = f.querySelector('select[name="clase[]"]').value;
+      const descripcion = f.querySelector('input[name="descripcion[]"]').value;
+      if (!telar || !lote || !estilo || !clase || !descripcion) {
+        alert('Completa todas las filas antes de enviar.');
+        return;
+      }
+      aportes.push({ telar, lote, estilo, clase, descripcion });
+    }
+
+    const btn = this.querySelector('button[type="submit"]');
+    btn.disabled = true;
+    const txtOrig = btn.textContent;
+    btn.textContent = '⏳ Enviando...';
+
+    try {
+      const res = await fetch('/.netlify/functions/aporte', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nombre, aportes })
+      });
+      if (!res.ok) throw new Error(await res.text());
+
+      document.getElementById('mensaje-confirmacion').style.display = 'block';
+      this.reset();
+      // dejar solo la primera fila
+      while (contenedor.children.length > 1) contenedor.removeChild(contenedor.lastChild);
+
+      // recargar la pestaña Aportes
+      if (typeof cargarYRenderAportes === 'function') cargarYRenderAportes();
+
+      setTimeout(() => {
+        document.getElementById('mensaje-confirmacion').style.display = 'none';
+      }, 6000);
+    } catch (err) {
+      alert('❌ Error al enviar: ' + err.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = txtOrig;
+    }
+  });
 })();
+
+// ============================================================
+// 📝 APORTES — carga, filtros y render
+// ============================================================
+let aportesCache = [];
+
+async function cargarYRenderAportes() {
+  const cont = document.getElementById('aportesContent');
+  if (!cont) return;
+  cont.innerHTML = '<p style="color:var(--text-secondary);">⏳ Cargando aportes...</p>';
+  try {
+    const res = await fetch('/.netlify/functions/aporte', { cache: 'no-store' });
+    if (!res.ok) throw new Error(await res.text());
+    aportesCache = await res.json();
+    renderAportes();
+  } catch (err) {
+    cont.innerHTML = '<p style="color:var(--danger);">❌ Error al cargar aportes: ' + err.message + '</p>';
+  }
+}
+
+function renderAportes() {
+  const cont = document.getElementById('aportesContent');
+  if (!cont) return;
+
+  // Filtro por contrato vigente
+  let lista = aportesCache;
+  if (currentContrato !== CONTRATO_TODOS) {
+    lista = lista.filter(a => a.contrato === currentContrato);
+  }
+
+  // Filtros locales
+  const telarF = (document.getElementById('ap-filtro-telar')?.value || '').trim();
+  const claseF = (document.getElementById('ap-filtro-clase')?.value || '').trim();
+  const desdeF = document.getElementById('ap-filtro-desde')?.value || '';
+
+  if (telarF) {
+    const t = telarF.padStart(2, '0');
+    lista = lista.filter(a => a.telar === t);
+  }
+  if (claseF) lista = lista.filter(a => a.clase === claseF);
+  if (desdeF) lista = lista.filter(a => (a.fecha || '') >= desdeF);
+
+  // Info
+  const info = document.getElementById('ap-filtro-info');
+  if (info) info.textContent = '· ' + lista.length + ' aporte(s)';
+
+  if (!lista.length) {
+    cont.innerHTML = '<p>No hay aportes con los filtros actuales.</p>';
+    return;
+  }
+
+  // Conteo por clase
+  const porClase = {};
+  lista.forEach(a => { porClase[a.clase] = (porClase[a.clase] || 0) + 1; });
+  const clasesHtml = Object.entries(porClase)
+    .map(([k, v]) => `<span class="badge badge-ok">${k}: ${v}</span>`).join(' ');
+
+  let html = '<div style="margin-bottom:14px; padding:12px; background:var(--glass); border-radius:8px;">' +
+    '<strong>Total:</strong> ' + lista.length +
+    (currentContrato !== CONTRATO_TODOS ? ' · Contrato ' + currentContrato : '') +
+    ' &nbsp;·&nbsp; ' + clasesHtml + '</div>';
+
+  const cols = ['fecha', 'hora', 'telar', 'contrato', 'nombre', 'lote', 'estilo', 'clase', 'descripcion'];
+  html += '<div class="table-wrapper"><table><thead><tr>' +
+    cols.map(c => '<th>' + c + '</th>').join('') +
+    '</tr></thead><tbody>';
+  lista.slice().reverse().forEach(a => {
+    html += '<tr>' + cols.map(c => '<td>' + (a[c] || '') + '</td>').join('') + '</tr>';
+  });
+  html += '</tbody></table></div>';
+  cont.innerHTML = html;
+}
+
+// Listeners de filtros
+document.addEventListener('DOMContentLoaded', () => {
+  ['ap-filtro-telar', 'ap-filtro-clase', 'ap-filtro-desde'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', renderAportes);
+    if (el) el.addEventListener('change', renderAportes);
+  });
+  const btnRef = document.getElementById('ap-btn-refresh');
+  if (btnRef) btnRef.addEventListener('click', cargarYRenderAportes);
+});
+
+
 </script>
+
 
 </body>
 </html>
