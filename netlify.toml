@@ -1,11 +1,11 @@
-# Configuración para que Netlify sirva archivos CSV
+[build]
+  publish = "."
+  functions = "netlify/functions"
+
+[functions]
+  node_bundler = "esbuild"
 
 [[headers]]
-  for = "/*.csv"
+  for = "/.netlify/functions/*"
   [headers.values]
-    Content-Type = "text/csv"
-
-[[headers]]
-  for = "/*.csv"
-  [headers.values]
-    Access-Control-Allow-Origin = "*"
+    Cache-Control = "no-store"
