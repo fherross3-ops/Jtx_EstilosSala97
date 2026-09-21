@@ -222,6 +222,100 @@ tr:hover td { background: var(--glass); }
 .filtros-telar .btn-filtrar:hover {
   background: #7c7cf8;
 }
+
+/* ============================================================
+   📊 OEE TAB — estilos scopeados
+   ============================================================ */
+#tab-oee {
+  --oee-panel:#111c33;
+  --oee-panel2:#16233d;
+  --oee-border:#1f2f4d;
+  --oee-text:#e6edf7;
+  --oee-muted:#8ba0c0;
+  --oee-verde:#22c55e;
+  --oee-amarillo:#f5b301;
+  --oee-rojo:#ef4444;
+  --oee-azul:#3b82f6;
+  --oee-cyan:#06b6d4;
+  --oee-violeta:#8b5cf6;
+  --oee-naranja:#fb923c;
+}
+#tab-oee .oee-header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:16px;margin-bottom:22px;}
+#tab-oee .oee-header h1{font-size:1.55rem;font-weight:700;letter-spacing:-.4px;color:var(--oee-text);}
+#tab-oee .oee-header h1 span{color:var(--oee-cyan);}
+#tab-oee .oee-sub{color:var(--oee-muted);font-size:.85rem;margin-top:4px;}
+#tab-oee .oee-badges{display:flex;gap:10px;flex-wrap:wrap;}
+#tab-oee .oee-badge{background:var(--oee-panel);border:1px solid var(--oee-border);padding:7px 14px;border-radius:999px;font-size:.78rem;color:var(--oee-muted);}
+#tab-oee .oee-badge b{color:var(--oee-text);}
+
+#tab-oee .oee-kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(205px,1fr));gap:14px;margin-bottom:20px;}
+#tab-oee .oee-kpi{background:linear-gradient(160deg,#152341,#101a2e);border:1px solid var(--oee-border);border-radius:14px;padding:16px 18px;position:relative;overflow:hidden;transition:transform .2s,border-color .2s;--accent:#3b82f6;}
+#tab-oee .oee-kpi:hover{transform:translateY(-3px);border-color:#2c4370;}
+#tab-oee .oee-kpi::before{content:'';position:absolute;top:0;left:0;width:100%;height:3px;background:var(--accent);}
+#tab-oee .oee-kpi-lbl{font-size:.72rem;text-transform:uppercase;letter-spacing:.9px;color:var(--oee-muted);display:flex;align-items:center;gap:7px;margin-bottom:10px;}
+#tab-oee .oee-kpi-val{font-size:1.75rem;font-weight:700;letter-spacing:-1px;line-height:1;color:var(--oee-text);}
+#tab-oee .oee-kpi-val small{font-size:.85rem;font-weight:500;color:var(--oee-muted);margin-left:3px;}
+#tab-oee .oee-kpi-sub{font-size:.75rem;color:var(--oee-muted);margin-top:8px;}
+#tab-oee .oee-dot{width:9px;height:9px;border-radius:50%;display:inline-block;flex:0 0 auto;}
+#tab-oee .oee-dot.verde{background:var(--oee-verde);box-shadow:0 0 9px var(--oee-verde);}
+#tab-oee .oee-dot.amarillo{background:var(--oee-amarillo);box-shadow:0 0 9px var(--oee-amarillo);}
+#tab-oee .oee-dot.rojo{background:var(--oee-rojo);box-shadow:0 0 9px var(--oee-rojo);}
+#tab-oee .oee-progress{height:6px;background:#0d1626;border-radius:99px;overflow:hidden;margin-top:10px;}
+#tab-oee .oee-progress i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#3b82f6,#06b6d4);}
+
+#tab-oee .oee-hero{display:grid;grid-template-columns:auto 1fr;gap:34px;align-items:center;background:linear-gradient(140deg,#152341,#0f1a2e);border:1px solid var(--oee-border);border-radius:16px;padding:26px 30px;margin-bottom:20px;}
+@media(max-width:820px){#tab-oee .oee-hero{grid-template-columns:1fr;gap:22px;}}
+#tab-oee .oee-semaforo{width:170px;height:170px;border-radius:50%;display:grid;place-items:center;position:relative;transition:box-shadow .4s;}
+#tab-oee .oee-semaforo::after{content:'';position:absolute;inset:14px;border-radius:50%;background:#0d1626;border:1px solid var(--oee-border);}
+#tab-oee .oee-semaforo .oee-inner{position:relative;z-index:2;text-align:center;}
+#tab-oee .oee-semaforo .oee-val{font-size:2.3rem;font-weight:800;letter-spacing:-2px;display:block;line-height:1;color:var(--oee-text);}
+#tab-oee .oee-semaforo .oee-lb{font-size:.68rem;letter-spacing:2.5px;color:var(--oee-muted);text-transform:uppercase;margin-top:6px;display:block;}
+#tab-oee .oee-semaforo.verde{box-shadow:0 0 0 8px rgba(34,197,94,.10),0 0 42px rgba(34,197,94,.45);background:conic-gradient(var(--oee-verde) var(--pct), #1b2740 0);}
+#tab-oee .oee-semaforo.amarillo{box-shadow:0 0 0 8px rgba(245,179,1,.10),0 0 42px rgba(245,179,1,.42);background:conic-gradient(var(--oee-amarillo) var(--pct), #1b2740 0);}
+#tab-oee .oee-semaforo.rojo{box-shadow:0 0 0 8px rgba(239,68,68,.10),0 0 42px rgba(239,68,68,.42);background:conic-gradient(var(--oee-rojo) var(--pct), #1b2740 0);}
+
+#tab-oee .oee-comp-bars{display:flex;flex-direction:column;gap:14px;}
+#tab-oee .oee-comp{display:grid;grid-template-columns:130px 1fr 68px;align-items:center;gap:14px;}
+#tab-oee .oee-comp .oee-name{font-size:.82rem;color:var(--oee-muted);}
+#tab-oee .oee-comp .oee-track{height:11px;background:#0d1626;border-radius:99px;overflow:hidden;border:1px solid #1b2b48;}
+#tab-oee .oee-comp .oee-fill{height:100%;border-radius:99px;transition:width .8s cubic-bezier(.2,.8,.2,1);}
+#tab-oee .oee-comp .oee-pct{text-align:right;font-weight:700;font-size:.92rem;}
+
+#tab-oee .oee-grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(430px,1fr));gap:16px;margin-bottom:20px;}
+@media(max-width:920px){#tab-oee .oee-grid2{grid-template-columns:1fr;}}
+#tab-oee .oee-card{background:linear-gradient(160deg,#131f36,#0f1a2e);border:1px solid var(--oee-border);border-radius:14px;padding:18px 20px;}
+#tab-oee .oee-card h3{font-size:.88rem;font-weight:600;margin-bottom:4px;display:flex;align-items:center;gap:9px;color:var(--oee-text);}
+#tab-oee .oee-card h3::before{content:'';width:3px;height:15px;border-radius:2px;background:var(--oee-cyan);}
+#tab-oee .oee-hint{font-size:.72rem;color:var(--oee-muted);margin-bottom:14px;}
+#tab-oee .oee-chart-box{position:relative;height:265px;}
+
+#tab-oee .oee-esc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;}
+#tab-oee .oee-esc{background:#0d1626;border:1px solid #1b2b48;border-radius:11px;padding:14px 15px;}
+#tab-oee .oee-esc .t{font-size:.7rem;text-transform:uppercase;letter-spacing:.8px;color:var(--oee-muted);margin-bottom:7px;}
+#tab-oee .oee-esc .v{font-size:1.28rem;font-weight:700;letter-spacing:-.5px;color:var(--oee-text);}
+#tab-oee .oee-esc .v small{font-size:.72rem;color:var(--oee-muted);font-weight:500;}
+
+#tab-oee .oee-table-wrap{overflow-x:auto;border-radius:12px;border:1px solid var(--oee-border);}
+#tab-oee .oee-table{width:100%;border-collapse:collapse;font-size:.79rem;min-width:960px;color:var(--oee-text);}
+#tab-oee .oee-table thead th{background:#0e1a2d;color:var(--oee-muted);font-weight:600;text-transform:uppercase;font-size:.66rem;letter-spacing:.8px;padding:11px 10px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--oee-border);}
+#tab-oee .oee-table thead th:first-child,#tab-oee .oee-table tbody td:first-child{text-align:left;}
+#tab-oee .oee-table tbody td{padding:10px;text-align:right;border-bottom:1px solid #16233d;white-space:nowrap;}
+#tab-oee .oee-table tbody tr:hover{background:#152341;}
+#tab-oee .oee-table tfoot td{padding:12px 10px;text-align:right;font-weight:700;background:#0e1a2d;border-top:2px solid #23375c;color:var(--oee-text);}
+#tab-oee .oee-table tfoot td:first-child{text-align:left;}
+#tab-oee .oee-flag{display:inline-block;width:10px;height:10px;border-radius:50%;}
+
+#tab-oee .oee-insights{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;margin-top:20px;}
+#tab-oee .oee-ins{background:linear-gradient(160deg,#131f36,#0f1a2e);border:1px solid var(--oee-border);border-left:3px solid var(--oee-azul);border-radius:11px;padding:15px 18px;}
+#tab-oee .oee-ins.warn{border-left-color:var(--oee-amarillo);}
+#tab-oee .oee-ins.ok{border-left-color:var(--oee-verde);}
+#tab-oee .oee-ins.bad{border-left-color:var(--oee-rojo);}
+#tab-oee .oee-ins h4{font-size:.83rem;margin-bottom:7px;display:flex;align-items:center;gap:8px;color:var(--oee-text);}
+#tab-oee .oee-ins p{font-size:.78rem;color:#b6c6dd;line-height:1.55;}
+#tab-oee .oee-ins p b{color:var(--oee-text);}
+
+#tab-oee .oee-footer{margin-top:26px;padding-top:18px;border-top:1px solid var(--oee-border);font-size:.72rem;color:var(--oee-muted);line-height:1.7;}
+#tab-oee .oee-footer code{background:#0d1626;padding:2px 7px;border-radius:5px;color:#7dd3fc;font-size:.71rem;}
 </style>
 
 <!-- 100% privacy-first analytics -->
@@ -260,7 +354,6 @@ tr:hover td { background: var(--glass); }
       <label>📅 Ver día:</label>
       <select id="daySelect"></select>
     </div>
-    <!-- 🔷 NUEVO: Selector de contrato -->
     <div class="control-row" id="contractSelector" style="display:none;">
       <label>📑 Ver contrato:</label>
       <select id="contractSelect">
@@ -285,9 +378,10 @@ tr:hover td { background: var(--glass); }
         <div class="tab" data-tab="telar">🏭 Telares</div>
         <div class="tab" data-tab="ppp">🔢 Base PPP</div>
         <div class="tab" data-tab="historial">📅 Historial</div>
+        <div class="tab" data-tab="oee">📊 OEE</div>
         <div class="tab" data-tab="alertas">⚠️ Alertas</div>
-<div class="tab" data-tab="aportes">📝 Aportes</div>
-<div class="tab" data-tab="valid">✅ Validación</div>
+        <div class="tab" data-tab="aportes">📝 Aportes</div>
+        <div class="tab" data-tab="valid">✅ Validación</div>
       </div>
 
       <div id="tab-dashboard" class="tab-content active">
@@ -326,31 +420,122 @@ tr:hover td { background: var(--glass); }
       </div>
       <div id="tab-ppp" class="tab-content"><div class="table-wrapper" id="tablePPP"></div></div>
       <div id="tab-historial" class="tab-content"><div id="historialContent"></div></div>
-     
-<div id="tab-alertas" class="tab-content"><div id="alertasContent"></div></div>
-<div id="tab-aportes" class="tab-content">
-  <div class="filtros-telar">
-    <label>Telar:</label>
-    <input type="text" id="ap-filtro-telar" placeholder="Ej: 12" style="width:80px;">
-    <label>Clase:</label>
-    <select id="ap-filtro-clase">
-      <option value="">Todas</option>
-      <option value="Calidad">Calidad</option>
-      <option value="Mantenimiento">Mantenimiento</option>
-      <option value="Producción">Producción</option>
-      <option value="Planificación">Planificación</option>
-      <option value="Auditoría">Auditoría</option>
-    </select>
-    <label>Desde:</label>
-    <input type="date" id="ap-filtro-desde">
-    <button class="btn-filtrar" id="ap-btn-refresh">🔄 Recargar</button>
-    <span id="ap-filtro-info" style="font-size:12px;color:var(--text-secondary);"></span>
-  </div>
-  <div id="aportesContent"></div>
-</div>
-<div id="tab-valid" class="tab-content"><div class="table-wrapper" id="tableValid"></div></div>
 
+      <div id="tab-oee" class="tab-content">
+        <div id="oee-app">
+          <div class="oee-header">
+            <div>
+              <h1>Tablero de Control · <span>Tejeduría</span></h1>
+              <p class="oee-sub">OEE · Trazabilidad diaria · Probabilidad de cumplimiento</p>
+            </div>
+            <div class="oee-badges" id="oeeBadges"></div>
+          </div>
 
+          <div class="oee-kpi-grid" id="oeeKpiGrid"></div>
+
+          <div class="oee-hero">
+            <div class="oee-semaforo" id="oeeSemaforo">
+              <div class="oee-inner">
+                <span class="oee-val" id="oeeVal">--</span>
+                <span class="oee-lb">OEE Global</span>
+              </div>
+            </div>
+            <div class="oee-comp-bars" id="oeeCompBars"></div>
+          </div>
+
+          <div class="oee-grid2">
+            <div class="oee-card">
+              <h3>Producción diaria y proyección</h3>
+              <p class="oee-hint">Barras = metros reales / proyectados · Línea = tendencia</p>
+              <div class="oee-chart-box"><canvas id="oeeChProd"></canvas></div>
+            </div>
+            <div class="oee-card">
+              <h3>Avance acumulado vs. meta mensual</h3>
+              <p class="oee-hint">Real, proyección y ritmo lineal requerido</p>
+              <div class="oee-chart-box"><canvas id="oeeChAcum"></canvas></div>
+            </div>
+            <div class="oee-card">
+              <h3>OEE y sus componentes</h3>
+              <p class="oee-hint">Disponibilidad × Rendimiento × Calidad</p>
+              <div class="oee-chart-box"><canvas id="oeeChOEE"></canvas></div>
+            </div>
+            <div class="oee-card">
+              <h3>Índice de paros (trama + urdimbre)</h3>
+              <p class="oee-hint">Por 100,000 pasadas · Meta &lt; 5.0</p>
+              <div class="oee-chart-box"><canvas id="oeeChIdx"></canvas></div>
+            </div>
+            <div class="oee-card">
+              <h3>Tendencia de la probabilidad de cumplimiento</h3>
+              <p class="oee-hint">Probabilidad calculada día a día</p>
+              <div class="oee-chart-box"><canvas id="oeeChProb"></canvas></div>
+            </div>
+            <div class="oee-card">
+              <h3>Distribución de la producción proyectada</h3>
+              <p class="oee-hint">10,000 simulaciones Monte Carlo · cierre de mes</p>
+              <div class="oee-chart-box"><canvas id="oeeChHist"></canvas></div>
+            </div>
+          </div>
+
+          <div class="oee-card" style="margin-bottom:20px;">
+            <h3>Escenarios y probabilidad de cierre</h3>
+            <p class="oee-hint">Ritmos requeridos vs. ritmos observados</p>
+            <div class="oee-esc-grid" id="oeeEscGrid"></div>
+          </div>
+
+          <div class="oee-card">
+            <h3>Trazabilidad diaria</h3>
+            <p class="oee-hint">Detalle de producción, telares, indicadores y semáforo por día</p>
+            <div class="oee-table-wrap">
+              <table class="oee-table">
+                <thead>
+                  <tr>
+                    <th>Fecha</th><th>Día</th><th>Metros</th>
+                    <th>Tel. Act.</th><th>Tel. Par.</th><th>Total</th>
+                    <th>Disponib.</th><th>Rendim.</th><th>Calidad</th><th>OEE</th>
+                    <th>Índice</th><th>Estado</th>
+                  </tr>
+                </thead>
+                <tbody id="oeeTbody"></tbody>
+                <tfoot id="oeeTfoot"></tfoot>
+              </table>
+            </div>
+          </div>
+
+          <div class="oee-insights" id="oeeInsights"></div>
+
+          <div class="oee-footer">
+            <b>Fórmulas:</b>
+            <code>Disp = Activos / (Activos+Parados)</code> ·
+            <code>Rend = Metros / (Activos × 380 m)</code> ·
+            <code>Cal = 4.3 / Índice</code> ·
+            <code>OEE = D × R × C</code>
+          </div>
+        </div>
+      </div>
+
+      <div id="tab-alertas" class="tab-content"><div id="alertasContent"></div></div>
+
+      <div id="tab-aportes" class="tab-content">
+        <div class="filtros-telar">
+          <label>Telar:</label>
+          <input type="text" id="ap-filtro-telar" placeholder="Ej: 12" style="width:80px;">
+          <label>Clase:</label>
+          <select id="ap-filtro-clase">
+            <option value="">Todas</option>
+            <option value="Calidad">Calidad</option>
+            <option value="Mantenimiento">Mantenimiento</option>
+            <option value="Producción">Producción</option>
+            <option value="Planificación">Planificación</option>
+            <option value="Auditoría">Auditoría</option>
+          </select>
+          <label>Desde:</label>
+          <input type="date" id="ap-filtro-desde">
+          <button class="btn-filtrar" id="ap-btn-refresh">🔄 Recargar</button>
+          <span id="ap-filtro-info" style="font-size:12px;color:var(--text-secondary);"></span>
+        </div>
+        <div id="aportesContent"></div>
+      </div>
+      <div id="tab-valid" class="tab-content"><div class="table-wrapper" id="tableValid"></div></div>
 
     </div>
   </div>
@@ -363,10 +548,10 @@ tr:hover td { background: var(--glass); }
 Chart.register(ChartDataLabels);
 
 const FACTOR_PULG = 39.37007874;
-const STORAGE_KEY = 'tejeduria_history_final_v2'; // 🔷 NUEVO: v2 para estructura por contrato
+const STORAGE_KEY = 'tejeduria_history_final_v2';
 const TOTAL_TELARES = 97;
 
-// 🔷 NUEVO: Distribución de telares por contrato (fuente: Configuracion-sala97_14TxC.txt)
+// 🔷 Distribución de telares por contrato
 const CONTRATOS = {
   'C01': ['01','02','03','04','10','11','12','13','14','19','20','21','22','23'],
   'C02': ['05','06','07','08','09','15','16','17','18','24','25','26','27','28'],
@@ -383,9 +568,10 @@ const CONTRATO_TODOS = 'all';
 
 let allData = {};
 let currentFecha = null;
-let currentContrato = CONTRATO_TODOS; // 🔷 NUEVO
+let currentContrato = CONTRATO_TODOS;
 let charts = {};
-let vistaActual = null; // 🔷 NUEVO: datos de la vista vigente
+let vistaActual = null;
+let aportesCache = []; // 🔷 GLOBAL (antes estaba en el segundo script)
 
 // ============================================================
 // 📂 CONFIGURACIÓN GITHUB
@@ -547,7 +733,7 @@ document.getElementById('themeToggle').addEventListener('click', function() {
   if (currentFecha) renderCharts();
 });
 
-// ---------- HISTORIAL (formato v2: por fecha + por contrato) ----------
+// ---------- HISTORIAL ----------
 function loadHistory() {
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); }
   catch(e) { return {}; }
@@ -682,13 +868,11 @@ function procesarMultiDia(rows, fileName) {
       var datosDia = datos.filter(function(d) {
         return formatearFechaEstandar(d['_fechaObj']) === fechaStr;
       });
-      // Almacenar TODOS los datos del día (sin filtro de contrato)
       allData[fechaStr] = {
         datos: datosDia,
         fileName: fileName,
         fechaPrincipal: fechaStr
       };
-      // 🔷 NUEVO: guardar historial para CADA contrato + 'all'
       var timestamp = fechaObj.getTime();
       saveToHistory(fechaStr, 'all', resumenRapido(datosDia, fechaStr, fileName, 'all', timestamp));
       Object.keys(CONTRATOS).forEach(function(c) {
@@ -696,8 +880,10 @@ function procesarMultiDia(rows, fileName) {
       });
     });
 
-    currentFecha = fechasUnicas[0];
+    // 🔷 Se abre la fecha más reciente
+    currentFecha = fechasUnicas[fechasUnicas.length - 1];
     currentContrato = CONTRATO_TODOS;
+
     mostrarSelectorDias(fechasUnicas);
     poblarSelectorContratos();
     renderAll();
@@ -715,7 +901,7 @@ function procesarMultiDia(rows, fileName) {
   }
 }
 
-// 🔷 NUEVO: resumen ligero por contrato para el histórico
+// 🔷 Resumen ligero por contrato para el histórico
 function resumenRapido(datos, fecha, fileName, contrato, timestamp) {
   var telaresContrato = (contrato && contrato !== CONTRATO_TODOS && CONTRATOS[contrato])
     ? CONTRATOS[contrato] : null;
@@ -947,10 +1133,13 @@ function procesarDia(datos, fecha, fileName) {
 function mostrarSelectorDias(fechas) {
   var selector = document.getElementById('daySelector');
   var select = document.getElementById('daySelect');
-  select.innerHTML = fechas.map(function(f) { return '<option value="' + f + '">' + f + '</option>'; }).join('');
+  // 🔷 Orden DESCENDENTE para el dropdown (más reciente primero)
+  var fechasOrdenadas = fechas.slice().reverse();
+  select.innerHTML = fechasOrdenadas.map(function(f) {
+    return '<option value="' + f + '">' + f + '</option>';
+  }).join('');
   select.value = currentFecha;
   selector.style.display = 'flex';
-  // evitar duplicar listeners
   var nuevo = select.cloneNode(true);
   select.parentNode.replaceChild(nuevo, select);
   nuevo.addEventListener('change', function(e) {
@@ -959,7 +1148,7 @@ function mostrarSelectorDias(fechas) {
   });
 }
 
-// 🔷 NUEVO: Poblar selector de contratos
+// 🔷 Poblar selector de contratos
 function poblarSelectorContratos() {
   var sel = document.getElementById('contractSelect');
   if (!sel) return;
@@ -971,7 +1160,6 @@ function poblarSelectorContratos() {
     sel.appendChild(opt);
   });
   sel.value = currentContrato;
-  // evitar duplicar listener
   var nuevo = sel.cloneNode(true);
   sel.parentNode.replaceChild(nuevo, sel);
   nuevo.addEventListener('change', function(e) {
@@ -986,10 +1174,8 @@ function renderAll() {
   if (!currentFecha || !allData[currentFecha]) return;
   var base = allData[currentFecha];
 
-  // 🔷 Recalcular la vista según el contrato vigente
   vistaActual = calcularTodo(base.datos, currentFecha, base.fileName, currentContrato);
 
-  // Contexto en KPIs
   var ctx = document.getElementById('kpiContexto');
   if (ctx) {
     ctx.textContent = (currentContrato === CONTRATO_TODOS)
@@ -1009,10 +1195,10 @@ function renderAll() {
   renderAlertas(vistaActual);
   renderHistorial();
   poblarSelectorTelares();
-// 🔷 Re-render aportes si ya se cargaron
-if (typeof renderAportes === 'function' && aportesCache.length) renderAportes();
 
-  // Info de contrato
+  // 🔷 Re-render aportes si ya se cargaron
+  if (typeof renderAportes === 'function' && aportesCache.length) renderAportes();
+
   var info = document.getElementById('contractInfo');
   if (info) {
     if (currentContrato === CONTRATO_TODOS) {
@@ -1022,11 +1208,16 @@ if (typeof renderAportes === 'function' && aportesCache.length) renderAportes();
     }
   }
 
-  // Título del trend
   var tTitle = document.getElementById('trendTitle');
   if (tTitle) {
     tTitle.textContent = '📈 Tendencia U+T/100k · ' +
       (currentContrato === CONTRATO_TODOS ? 'Todos los contratos' : 'Contrato ' + currentContrato);
+  }
+
+  // 🔷 Re-render OEE si la pestaña está activa (DENTRO de renderAll)
+  var tabOEE = document.getElementById('tab-oee');
+  if (tabOEE && tabOEE.classList.contains('active') && typeof renderOEE === 'function') {
+    renderOEE();
   }
 }
 
@@ -1098,9 +1289,6 @@ function renderCharts(dataArg) {
     allData[currentFecha].datos, currentFecha, allData[currentFecha].fileName, currentContrato
   );
 
-  // ============================================================
-  // 📈 TENDENCIA - AHORA POR CONTRATO (usa el histórico por contrato)
-  // ============================================================
   var hist = loadHistory();
   var fechasHist = Object.keys(hist)
     .filter(function(f) { return hist[f] && hist[f][currentContrato]; })
@@ -1144,7 +1332,6 @@ function renderCharts(dataArg) {
     }
   });
 
-  // Top estilos
   var topEstilos = data.resumenEstilo.filter(function(e) { return e['Metros'] >= 100; }).slice(0, 8);
   var etiquetasEstilos = topEstilos.map(function(e) {
     var pct = e['_telares_pct'] || 0;
@@ -1175,7 +1362,6 @@ function renderCharts(dataArg) {
     }
   });
 
-  // Trama
   var topTrama = data.resumenTelar.slice(0, 10).sort(function(a, b) { return b['Trama/100k'] - a['Trama/100k']; });
   charts.trama = new Chart(document.getElementById('chartTrama'), {
     type: 'bar',
@@ -1208,7 +1394,6 @@ function renderCharts(dataArg) {
     }
   });
 
-  // Urdimbre
   var topUrd = data.resumenTelar.slice(0, 10).sort(function(a, b) { return b['Urd/100k'] - a['Urd/100k']; });
   charts.urdimbre = new Chart(document.getElementById('chartUrdimbre'), {
     type: 'bar',
@@ -1241,7 +1426,6 @@ function renderCharts(dataArg) {
     }
   });
 
-  // Manual
   var topManual = data.resumenTelar.slice(0, 10).sort(function(a, b) { return b['Manual/100k'] - a['Manual/100k']; });
   charts.manual = new Chart(document.getElementById('chartManual'), {
     type: 'bar',
@@ -1274,7 +1458,6 @@ function renderCharts(dataArg) {
     }
   });
 
-  // Total
   var topTotal = data.resumenTelar.slice(0, 10).sort(function(a, b) { return b['Total/100k'] - a['Total/100k']; });
   charts.total = new Chart(document.getElementById('chartTotal'), {
     type: 'bar',
@@ -1360,7 +1543,6 @@ function renderTelarFiltrado(telar, fechaDesde, fechaHasta, estilo) {
   var todosLosRegistros = [];
   Object.keys(allData).forEach(function(fecha) {
     var datosDia = allData[fecha].datos || [];
-    // 🔷 Respetar contrato vigente también en este filtro
     var permitidos = (currentContrato !== CONTRATO_TODOS) ? CONTRATOS[currentContrato] : null;
     datosDia.forEach(function(row) {
       if (permitidos && permitidos.indexOf(row['Telar']) === -1) return;
@@ -1455,7 +1637,6 @@ document.getElementById('btnLimpiarFiltros').addEventListener('click', function(
   document.getElementById('filtro-fecha-desde').value = '';
   document.getElementById('filtro-fecha-hasta').value = '';
   document.getElementById('filtro-estilo').value = '';
-  // 🔷 Reset contrato también
   currentContrato = CONTRATO_TODOS;
   var cSel = document.getElementById('contractSelect');
   if (cSel) cSel.value = 'all';
@@ -1496,7 +1677,6 @@ function renderAlertas(dataArg) {
 // ---------- HISTORIAL (por contrato) ----------
 function renderHistorial() {
   var hist = loadHistory();
-  // 🔷 Filtramos solo fechas que tengan resumen para el contrato vigente
   var fechas = Object.keys(hist)
     .filter(function(f) { return hist[f] && hist[f][currentContrato]; })
     .sort(function(a, b) {
@@ -1512,7 +1692,6 @@ function renderHistorial() {
     return;
   }
 
-  // Semana en curso (lunes a domingo) según última fecha
   var ultimaFechaStr = fechas[fechas.length - 1];
   var partes = ultimaFechaStr.split('/').map(Number);
   var dd = partes[0], mm = partes[1], yyyy = partes[2];
@@ -1615,8 +1794,12 @@ document.querySelectorAll('.tab').forEach(function(tab) {
     tab.classList.add('active');
     var tabId = tab.getAttribute('data-tab');
     document.getElementById('tab-' + tabId).classList.add('active');
-   if (tabId === 'dashboard' && currentFecha) renderCharts();
-if (tabId === 'aportes') cargarYRenderAportes();
+    if (tabId === 'dashboard' && currentFecha) renderCharts();
+    if (tabId === 'oee' && typeof renderOEE === 'function') renderOEE();
+    if (tabId === 'aportes' && typeof cargarYRenderAportes === 'function') {
+      if (!aportesCache.length) cargarYRenderAportes();
+      else renderAportes();
+    }
     if (tabId === 'telar' && currentFecha) {
       var telarSelect = document.getElementById('filtro-telar');
       if (telarSelect && telarSelect.value === 'all' &&
@@ -1634,6 +1817,415 @@ if (tabId === 'aportes') cargarYRenderAportes();
 // ---------- INIT ----------
 initTheme();
 setTimeout(function() { cargarArchivosPrecargados(); }, 500);
+
+// ============================================================
+// 📊 OEE — Integración con datos del dashboard
+// ============================================================
+const OEE_CFG = {
+  metaMes: 500000,
+  metaIndice: 4.3,
+  ritmoEstandar: 380,
+  umbral: { oee:{v:60,a:40}, disp:{v:85,a:70}, rend:{v:80,a:60}, cal:{v:98,a:95} }
+};
+
+let OEE_DIAS = [];
+let oeeCharts = {};
+
+function generarOEE_DIAS() {
+  var fechas = Object.keys(allData).sort(function(a,b){
+    var da = parsearFechaUniversal(a), db = parsearFechaUniversal(b);
+    return (da && db) ? da - db : a.localeCompare(b);
+  });
+
+  return fechas.map(function(f) {
+    var base = allData[f];
+    var vista = calcularTodo(base.datos, f, base.fileName, currentContrato);
+    var activos = vista.telaresActivosCount;
+    var totales = vista.totalTelares;
+    var parados = Math.max(0, totales - activos);
+    var metros = vista.kpiGlobal['Metros tejidos activos'] || 0;
+    var indice = (vista.kpiGlobal['Trama / 100k'] || 0) + (vista.kpiGlobal['Urdimbre / 100k'] || 0);
+    var fechaObj = parsearFechaUniversal(f);
+    var dia = fechaObj ? fechaObj.getDate() : 0;
+    var dow = fechaObj ? DIAS_SEMANA[fechaObj.getDay()] : '';
+    var partes = f.split('/');
+    var iso = partes.length === 3 ? partes[2] + '-' + partes[1].padStart(2,'0') + '-' + partes[0].padStart(2,'0') : f;
+    return { fecha: iso, fechaRaw: f, dia: dia, dow: dow, metros: metros, activos: activos, parados: parados, indice: indice };
+  });
+}
+
+function oeeCalcDia(d) {
+  var totalTel = d.activos + d.parados;
+  var A = totalTel > 0 ? d.activos / totalTel : 0;
+  var capTeorica = d.activos * OEE_CFG.ritmoEstandar;
+  var P = capTeorica > 0 ? Math.min(1, d.metros / capTeorica) : 0;
+  var Q = d.indice > 0 ? Math.min(1, OEE_CFG.metaIndice / d.indice) : 1;
+  return Object.assign({}, d, { totalTel: totalTel, A: A, P: P, Q: Q, OEE: A*P*Q, capTeorica: capTeorica });
+}
+
+function oeeColorOEE(v){ return v*100>=OEE_CFG.umbral.oee.v?'verde':v*100>=OEE_CFG.umbral.oee.a?'amarillo':'rojo'; }
+function oeeColorDisp(v){ return v*100>=OEE_CFG.umbral.disp.v?'verde':v*100>=OEE_CFG.umbral.disp.a?'amarillo':'rojo'; }
+function oeeColorRend(v){ return v*100>=OEE_CFG.umbral.rend.v?'verde':v*100>=OEE_CFG.umbral.rend.a?'amarillo':'rojo'; }
+function oeeColorCal(v){ return v*100>=OEE_CFG.umbral.cal.v?'verde':v*100>=OEE_CFG.umbral.cal.a?'amarillo':'rojo'; }
+function oeeColorIndice(v){ return v<=OEE_CFG.metaIndice?'verde':v<=5.5?'amarillo':'rojo'; }
+
+const oeeNf = n => n.toLocaleString('es-ES',{maximumFractionDigits:0});
+const oeeNf1 = n => n.toLocaleString('es-ES',{minimumFractionDigits:1,maximumFractionDigits:1});
+const oeePct = n => (n*100).toFixed(1) + '%';
+
+function oeeRegresion(pts){
+  var n = pts.length; if (n < 2) return {a:0,b:0,sigma:0,n:n};
+  var sx=0,sy=0,sxy=0,sxx=0;
+  pts.forEach(p=>{sx+=p.x;sy+=p.y;sxy+=p.x*p.y;sxx+=p.x*p.x;});
+  var den = n*sxx - sx*sx;
+  var b = den!==0 ? (n*sxy-sx*sy)/den : 0;
+  var a = (sy - b*sx)/n;
+  var sse=0; pts.forEach(p=>{var e=p.y-(a+b*p.x); sse+=e*e;});
+  var sigma = n>2 ? Math.sqrt(sse/(n-2)) : 0;
+  return {a:a,b:b,sigma:sigma,n:n};
+}
+function oeeGauss(){var u=0,v=0;while(u===0)u=Math.random();while(v===0)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+
+function oeeMonteCarlo(dias, diaCorte, diasMes, sims, devolverMuestras){
+  sims = sims || 10000;
+  var pts = dias.filter(d=>d.dia<=diaCorte).map(d=>({x:d.dia,y:d.metros}));
+  if (pts.length < 4) return {prob:0,p10:0,p50:0,p90:0,muestras:[]};
+  var reg = oeeRegresion(pts);
+  var acum = dias.filter(d=>d.dia<=diaCorte).reduce((s,d)=>s+d.metros,0);
+  var exitos=0; var totales=new Array(sims);
+  for(var s=0;s<sims;s++){
+    var t=acum;
+    for(var d=diaCorte+1;d<=diasMes;d++){ t += Math.max(0, reg.a + reg.b*d + oeeGauss()*reg.sigma); }
+    totales[s]=t;
+    if(t>=OEE_CFG.metaMes) exitos++;
+  }
+  totales.sort((x,y)=>x-y);
+  return { prob:exitos/sims, p10:totales[Math.floor(sims*0.10)], p50:totales[Math.floor(sims*0.50)], p90:totales[Math.floor(sims*0.90)], muestras: devolverMuestras?totales:[], a:reg.a, b:reg.b, sigma:reg.sigma };
+}
+
+function renderOEE(){
+  var cont = document.getElementById('oee-app');
+  if (!cont) return;
+
+  var diasRaw = generarOEE_DIAS();
+  if (!diasRaw.length) {
+    cont.innerHTML = '<p style="padding:20px;color:#8ba0c0;">Carga archivos primero para ver el tablero OEE.</p>';
+    return;
+  }
+
+  OEE_DIAS = diasRaw.map(oeeCalcDia);
+  var ultimoDia = OEE_DIAS[OEE_DIAS.length-1].dia;
+  var diasMes = Math.max(30, ultimoDia);
+
+  var TOTAL_METROS = OEE_DIAS.reduce((s,d)=>s+d.metros,0);
+  var AVG_A = OEE_DIAS.reduce((s,d)=>s+d.A,0)/OEE_DIAS.length;
+  var AVG_P = OEE_DIAS.reduce((s,d)=>s+d.P,0)/OEE_DIAS.length;
+  var AVG_Q = OEE_DIAS.reduce((s,d)=>s+d.Q,0)/OEE_DIAS.length;
+  var AVG_OEE = AVG_A*AVG_P*AVG_Q;
+  var AVG_IDX = OEE_DIAS.reduce((s,d)=>s+d.indice,0)/OEE_DIAS.length;
+  var SUM_ACT = OEE_DIAS.reduce((s,d)=>s+d.activos,0);
+  var SUM_TEL = OEE_DIAS.reduce((s,d)=>s+d.totalTel,0);
+  var DISP_POND = SUM_TEL>0 ? SUM_ACT/SUM_TEL : 0;
+
+  var DIAS_RESTANTES = Math.max(1, diasMes - ultimoDia);
+  var FALTANTE = OEE_CFG.metaMes - TOTAL_METROS;
+  var RITMO_REQUERIDO = FALTANTE / DIAS_RESTANTES;
+
+  var MC = oeeMonteCarlo(OEE_DIAS, ultimoDia, diasMes, 10000, true);
+  var ULT7 = OEE_DIAS.slice(-7);
+  var RITMO_7D = ULT7.reduce((s,d)=>s+d.metros,0)/ULT7.length;
+  var PTS_FULL = OEE_DIAS.map(d=>({x:d.dia,y:d.metros}));
+  var REG = oeeRegresion(PTS_FULL);
+  var RITMO_TEND = REG.a + REG.b*(ultimoDia + 1 + DIAS_RESTANTES/2);
+  var PROY_CONSERV = TOTAL_METROS + RITMO_7D*DIAS_RESTANTES;
+
+  document.getElementById('oeeBadges').innerHTML =
+    '<div class="oee-badge">Periodo <b>' + OEE_DIAS[0].fechaRaw + ' – ' + OEE_DIAS[OEE_DIAS.length-1].fechaRaw + '</b></div>' +
+    '<div class="oee-badge">Meta mes <b>' + oeeNf(OEE_CFG.metaMes) + ' m</b></div>' +
+    '<div class="oee-badge">Índice meta <b>&lt; ' + OEE_CFG.metaIndice + '</b></div>' +
+    (currentContrato !== CONTRATO_TODOS ? '<div class="oee-badge">Contrato <b>' + currentContrato + '</b></div>' : '');
+
+  var avance = TOTAL_METROS/OEE_CFG.metaMes;
+  var cards = [
+    { accent:'#3b82f6', lbl:'Producción acumulada', val:oeeNf(TOTAL_METROS)+' <small>m</small>', sub:oeePct(avance)+' de '+oeeNf(OEE_CFG.metaMes)+' m · faltan '+oeeNf(FALTANTE)+' m', bar:avance*100, dot: avance>=0.8?'verde':avance>=0.5?'amarillo':'rojo' },
+    { accent:'#06b6d4', lbl:'OEE Global', val:oeePct(AVG_OEE), sub:'D '+oeePct(AVG_A)+' × R '+oeePct(AVG_P)+' × C '+oeePct(AVG_Q), dot:oeeColorOEE(AVG_OEE) },
+    { accent:'#22c55e', lbl:'Disponibilidad', val:oeePct(AVG_A), sub:'Ponderada '+oeePct(DISP_POND)+' · '+(SUM_ACT/OEE_DIAS.length).toFixed(1)+' telares activos prom.', dot:oeeColorDisp(AVG_A) },
+    { accent:'#8b5cf6', lbl:'Rendimiento', val:oeePct(AVG_P), sub:'Estándar '+OEE_CFG.ritmoEstandar+' m/telar/día', dot:oeeColorRend(AVG_P) },
+    { accent:'#f5b301', lbl:'Calidad', val:oeePct(AVG_Q), sub:'Índice promedio '+oeeNf1(AVG_IDX)+' vs meta '+OEE_CFG.metaIndice, dot:oeeColorCal(AVG_Q) },
+    { accent: AVG_IDX<=5?'#22c55e':'#ef4444', lbl:'Índice paros T+U', val:oeeNf1(AVG_IDX), sub:OEE_DIAS.filter(d=>d.indice>5).length+' de '+OEE_DIAS.length+' días sobre la meta', dot:oeeColorIndice(AVG_IDX) },
+    { accent: MC.prob>=0.8?'#22c55e':MC.prob>=0.5?'#f5b301':'#ef4444', lbl:'Probabilidad de cumplimiento', val:(MC.prob*100).toFixed(1)+'%', sub:'Cierre proyectado ≈ '+oeeNf(MC.p50)+' m', dot: MC.prob>=0.8?'verde':MC.prob>=0.5?'amarillo':'rojo' }
+  ];
+  document.getElementById('oeeKpiGrid').innerHTML = cards.map(c=>
+    '<div class="oee-kpi" style="--accent:'+c.accent+'">' +
+      '<div class="oee-kpi-lbl"><span class="oee-dot '+c.dot+'"></span>'+c.lbl+'</div>' +
+      '<div class="oee-kpi-val">'+c.val+'</div>' +
+      '<div class="oee-kpi-sub">'+c.sub+'</div>' +
+      (c.bar!==undefined ? '<div class="oee-progress"><i style="width:'+Math.min(100,c.bar)+'%"></i></div>' : '') +
+    '</div>').join('');
+
+  var colorOEE = oeeColorOEE(AVG_OEE);
+  var elSem = document.getElementById('oeeSemaforo');
+  elSem.className = 'oee-semaforo ' + colorOEE;
+  elSem.style.setProperty('--pct', (AVG_OEE*100).toFixed(1)+'%');
+  document.getElementById('oeeVal').textContent = oeePct(AVG_OEE);
+
+  var comps = [
+    { name:'Disponibilidad', val:AVG_A, color:'#22c55e' },
+    { name:'Rendimiento', val:AVG_P, color:'#8b5cf6' },
+    { name:'Calidad', val:AVG_Q, color:'#f5b301' },
+    { name:'OEE', val:AVG_OEE, color:'#06b6d4' }
+  ];
+  document.getElementById('oeeCompBars').innerHTML = comps.map(c=>
+    '<div class="oee-comp">' +
+      '<span class="oee-name">'+c.name+'</span>' +
+      '<span class="oee-track"><span class="oee-fill" style="width:'+(c.val*100).toFixed(1)+'%;background:linear-gradient(90deg,'+c.color+'88,'+c.color+')"></span></span>' +
+      '<span class="oee-pct" style="color:'+c.color+'">'+oeePct(c.val)+'</span>' +
+    '</div>').join('');
+
+  var escItems = [
+    { t:'Ritmo requerido', v:oeeNf(RITMO_REQUERIDO)+' <small>m/día</small>', c: RITMO_REQUERIDO<=RITMO_7D?'var(--oee-verde)':'var(--oee-rojo)' },
+    { t:'Ritmo real (últimos 7 días)', v:oeeNf(RITMO_7D)+' <small>m/día</small>', c:'var(--oee-text)' },
+    { t:'Ritmo tendencial', v:oeeNf(RITMO_TEND)+' <small>m/día</small>', c:'var(--oee-text)' },
+    { t:'Proyección conservadora', v:oeeNf(PROY_CONSERV)+' <small>m</small>', c: PROY_CONSERV>=OEE_CFG.metaMes?'var(--oee-verde)':'var(--oee-rojo)' },
+    { t:'Proyección tendencial (P50)', v:oeeNf(MC.p50)+' <small>m</small>', c:'var(--oee-cyan)' },
+    { t:'Escenario pesimista (P10)', v:oeeNf(MC.p10)+' <small>m</small>', c: MC.p10>=OEE_CFG.metaMes?'var(--oee-verde)':'var(--oee-amarillo)' },
+    { t:'Escenario optimista (P90)', v:oeeNf(MC.p90)+' <small>m</small>', c:'var(--oee-verde)' },
+    { t:'Holgura sobre la meta', v:oeeNf(MC.p50-OEE_CFG.metaMes)+' <small>m</small>', c: MC.p50>=OEE_CFG.metaMes?'var(--oee-verde)':'var(--oee-rojo)' }
+  ];
+  document.getElementById('oeeEscGrid').innerHTML = escItems.map(i=>
+    '<div class="oee-esc"><div class="t">'+i.t+'</div><div class="v" style="color:'+i.c+'">'+i.v+'</div></div>').join('');
+
+  document.getElementById('oeeTbody').innerHTML = OEE_DIAS.map(d=>{
+    var c = oeeColorOEE(d.OEE);
+    var isoParts = d.fecha.split('-');
+    return '<tr>' +
+      '<td>'+isoParts[2]+'/'+isoParts[1]+'/'+isoParts[0]+'</td>' +
+      '<td>'+d.dow+'</td>' +
+      '<td>'+oeeNf(d.metros)+'</td>' +
+      '<td>'+d.activos+'</td>' +
+      '<td>'+d.parados+'</td>' +
+      '<td>'+d.totalTel+'</td>' +
+      '<td style="color:'+(oeeColorDisp(d.A)==='verde'?'var(--oee-verde)':oeeColorDisp(d.A)==='amarillo'?'var(--oee-amarillo)':'var(--oee-rojo)')+'">'+oeePct(d.A)+'</td>' +
+      '<td>'+oeePct(d.P)+'</td>' +
+      '<td>'+oeePct(d.Q)+'</td>' +
+      '<td style="font-weight:700">'+oeePct(d.OEE)+'</td>' +
+      '<td style="color:'+(oeeColorIndice(d.indice)==='verde'?'var(--oee-verde)':oeeColorIndice(d.indice)==='amarillo'?'var(--oee-amarillo)':'var(--oee-rojo)')+'">'+oeeNf1(d.indice)+'</td>' +
+      '<td><span class="oee-flag" style="background:var(--oee-'+c+');box-shadow:0 0 8px var(--oee-'+c+')"></span></td>' +
+    '</tr>';
+  }).join('');
+
+  document.getElementById('oeeTfoot').innerHTML =
+    '<tr><td>TOTAL / PROMEDIO</td><td>'+OEE_DIAS.length+' días</td><td>'+oeeNf(TOTAL_METROS)+'</td>' +
+    '<td>'+(SUM_ACT/OEE_DIAS.length).toFixed(1)+'</td>' +
+    '<td>'+(OEE_DIAS.reduce((s,d)=>s+d.parados,0)/OEE_DIAS.length).toFixed(1)+'</td>' +
+    '<td>'+(SUM_TEL/OEE_DIAS.length).toFixed(0)+'</td>' +
+    '<td>'+oeePct(AVG_A)+'</td><td>'+oeePct(AVG_P)+'</td><td>'+oeePct(AVG_Q)+'</td>' +
+    '<td>'+oeePct(AVG_OEE)+'</td><td>'+oeeNf1(AVG_IDX)+'</td>' +
+    '<td><span class="oee-flag" style="background:var(--oee-'+oeeColorOEE(AVG_OEE)+')"></span></td></tr>';
+
+  var mejorDia = OEE_DIAS.slice().sort((a,b)=>b.OEE-a.OEE)[0];
+  var peorDia = OEE_DIAS.slice().sort((a,b)=>a.OEE-b.OEE)[0];
+  var insights = [
+    { cls: MC.prob>=0.8?'ok':MC.prob>=0.5?'warn':'bad', title:'Probabilidad de cumplimiento: '+(MC.prob*100).toFixed(1)+'%',
+      text:'Cierre proyectado: <b>'+oeeNf(MC.p50)+' m</b> (P10: '+oeeNf(MC.p10)+' m · P90: '+oeeNf(MC.p90)+' m). Ritmo requerido: <b>'+oeeNf(RITMO_REQUERIDO)+' m/día</b> · ritmo real 7d: <b>'+oeeNf(RITMO_7D)+' m/día</b>.' },
+    { cls: AVG_A<0.70?'bad':AVG_A<0.85?'warn':'ok', title:'Disponibilidad: '+oeePct(AVG_A),
+      text:'Promedio <b>'+(SUM_ACT/OEE_DIAS.length).toFixed(0)+' telares activos</b> de '+OEE_DIAS[0].totalTel+'. Es el principal cuello de botella del OEE.' },
+    { cls: 'ok', title:'Rendimiento: '+oeePct(AVG_P),
+      text:'Mejor día: <b>'+mejorDia.fechaRaw+'</b> con '+oeePct(mejorDia.P)+' ('+oeeNf(mejorDia.metros)+' m). Los telares activos trabajan a buen ritmo.' },
+    { cls: oeeColorIndice(AVG_IDX)==='verde'?'ok':'warn', title:'Calidad: '+oeePct(AVG_Q),
+      text:'Índice promedio <b>'+oeeNf1(AVG_IDX)+'</b>. '+OEE_DIAS.filter(d=>d.indice>5).length+' de '+OEE_DIAS.length+' días superaron la meta de 5.0.' },
+    { cls: 'warn', title:'Día crítico: '+peorDia.fechaRaw+' con OEE '+oeePct(peorDia.OEE),
+      text:'Solo <b>'+peorDia.activos+' telares activos</b> ese día, muy por debajo del promedio.' },
+    { cls: AVG_OEE>=0.60?'ok':AVG_OEE>=0.40?'warn':'bad', title:'OEE Global: '+oeePct(AVG_OEE),
+      text:'Zona '+colorOEE+'. Meta típica de mejora: 60–65%. La brecha principal está en disponibilidad.' }
+  ];
+  document.getElementById('oeeInsights').innerHTML = insights.map(i=>
+    '<div class="oee-ins '+i.cls+'"><h4>'+i.title+'</h4><p>'+i.text+'</p></div>').join('');
+
+  renderOEECharts(MC, REG, TOTAL_METROS, ultimoDia, diasMes, DIAS_RESTANTES, RITMO_7D);
+}
+
+function renderOEECharts(MC, REG, TOTAL_METROS, ultimoDia, diasMes, DIAS_RESTANTES, RITMO_7D){
+  Object.values(oeeCharts).forEach(c=>{if(c)c.destroy();});
+  oeeCharts = {};
+
+  var GRID = { color:'#1b2b48', drawBorder:false };
+  var SC = {
+    x:{ grid:GRID, ticks:{ color:'#8ba0c0', maxRotation:0, autoSkip:true, maxTicksLimit:16 } },
+    y:{ grid:GRID, ticks:{ color:'#8ba0c0' }, beginAtZero:true }
+  };
+  var LEG = { labels:{ color:'#8ba0c0', boxWidth:11, boxHeight:11, usePointStyle:true, pointStyle:'circle', padding:14 } };
+
+  var labels = Array.from({length:diasMes},(_,i)=>String(i+1));
+  var realArr = labels.map((_,i)=>{ var d=OEE_DIAS.find(x=>x.dia===i+1); return d?d.metros:null; });
+  var proyArr = labels.map((_,i)=>{ var dia=i+1; if(dia<=ultimoDia) return null; return Math.max(0, REG.a+REG.b*dia); });
+  var tendArr = labels.map((_,i)=>Math.max(0, REG.a+REG.b*(i+1)));
+
+  oeeCharts.prod = new Chart(document.getElementById('oeeChProd'), {
+    type:'bar',
+    data:{ labels: labels, datasets:[
+      { label:'Metros reales', data:realArr, backgroundColor:'rgba(59,130,246,.75)', borderRadius:3, barPercentage:.8 },
+      { label:'Proyección', data:proyArr, backgroundColor:'rgba(6,182,212,.30)', borderRadius:3, barPercentage:.8 },
+      { label:'Tendencia', data:tendArr, type:'line', borderColor:'#f5b301', borderWidth:2, borderDash:[6,4], pointRadius:0, tension:.3, fill:false }
+    ]},
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:LEG}, scales:SC }
+  });
+
+  var acum=0;
+  var acumReal = labels.map((_,i)=>{ var d=OEE_DIAS.find(x=>x.dia===i+1); if(d){acum+=d.metros; return acum;} return null; });
+  var acumProy = labels.map((_,i)=>{ var dia=i+1; if(dia<ultimoDia) return null; if(dia===ultimoDia) return TOTAL_METROS; var t=TOTAL_METROS; for(var d=ultimoDia+1;d<=dia;d++) t+=Math.max(0,REG.a+REG.b*d); return t; });
+  var metaLineal = labels.map((_,i)=>OEE_CFG.metaMes/diasMes*(i+1));
+
+  oeeCharts.acum = new Chart(document.getElementById('oeeChAcum'), {
+    type:'line',
+    data:{ labels: labels, datasets:[
+      { label:'Acumulado real', data:acumReal, borderColor:'#22c55e', backgroundColor:'rgba(34,197,94,.13)', fill:true, tension:.25, pointRadius:0, borderWidth:2.5 },
+      { label:'Proyección', data:acumProy, borderColor:'#06b6d4', borderDash:[6,4], borderWidth:2.5, pointRadius:0, tension:.25, fill:false },
+      { label:'Meta lineal', data:metaLineal, borderColor:'#ef4444', borderWidth:1.6, borderDash:[3,3], pointRadius:0, fill:false }
+    ]},
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:LEG},
+      scales:{ x:SC.x, y:{ grid:GRID, beginAtZero:true, ticks:{ color:'#8ba0c0', callback:v=>(v/1000).toFixed(0)+'k' } } } }
+  });
+
+  var labelsDias = OEE_DIAS.map(d=>d.dia+'/'+d.fecha.split('-')[2]);
+  oeeCharts.oee = new Chart(document.getElementById('oeeChOEE'), {
+    type:'line',
+    data:{ labels: labelsDias, datasets:[
+      { label:'Disponibilidad', data:OEE_DIAS.map(d=>+(d.A*100).toFixed(1)), borderColor:'#22c55e', borderWidth:2, pointRadius:2.5, tension:.3, fill:false },
+      { label:'Rendimiento', data:OEE_DIAS.map(d=>+(d.P*100).toFixed(1)), borderColor:'#8b5cf6', borderWidth:2, pointRadius:2.5, tension:.3, fill:false },
+      { label:'Calidad', data:OEE_DIAS.map(d=>+(d.Q*100).toFixed(1)), borderColor:'#f5b301', borderWidth:2, pointRadius:2.5, tension:.3, fill:false },
+      { label:'OEE', data:OEE_DIAS.map(d=>+(d.OEE*100).toFixed(1)), borderColor:'#06b6d4', backgroundColor:'rgba(6,182,212,.12)', borderWidth:3, pointRadius:3.5, tension:.3, fill:true }
+    ]},
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:LEG},
+      scales:{ x:SC.x, y:{ grid:GRID, beginAtZero:true, max:100, ticks:{ color:'#8ba0c0', callback:v=>v+'%' } } } }
+  });
+
+  oeeCharts.idx = new Chart(document.getElementById('oeeChIdx'), {
+    type:'line',
+    data:{ labels: labelsDias, datasets:[
+      { label:'Índice T+U x 100k', data:OEE_DIAS.map(d=>d.indice), borderColor:'#fb923c', backgroundColor:'rgba(251,146,60,.13)', borderWidth:2.5, pointRadius:4, tension:.3, fill:true,
+        pointBackgroundColor: OEE_DIAS.map(d=>d.indice>OEE_CFG.metaIndice?'#ef4444':'#22c55e'), pointBorderColor:'#0d1626', pointBorderWidth:2 },
+      { label:'Meta '+OEE_CFG.metaIndice, data:OEE_DIAS.map(()=>OEE_CFG.metaIndice), borderColor:'#ef4444', borderWidth:1.8, borderDash:[7,5], pointRadius:0, fill:false }
+    ]},
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:LEG},
+      scales:{ x:SC.x, y:{ grid:GRID, beginAtZero:false, suggestedMin:3.5, suggestedMax:6, ticks:{ color:'#8ba0c0', callback:v=>v.toFixed(1) } } } }
+  });
+
+  var probLabels=[], probData=[];
+  for(var d=6; d<=ultimoDia; d++){
+    var p = oeeMonteCarlo(OEE_DIAS, d, diasMes, 2500).prob;
+    probLabels.push(d+'/'+OEE_DIAS[OEE_DIAS.length-1].fecha.split('-')[2]);
+    probData.push(+(p*100).toFixed(1));
+  }
+  oeeCharts.prob = new Chart(document.getElementById('oeeChProb'), {
+    type:'line',
+    data:{ labels: probLabels, datasets:[
+      { label:'Probabilidad de cumplimiento', data:probData, borderColor:'#22c55e', backgroundColor:'rgba(34,197,94,.15)', borderWidth:3, pointRadius:4, tension:.35, fill:true, pointBackgroundColor:'#22c55e', pointBorderColor:'#0d1626', pointBorderWidth:2 },
+      { label:'Umbral 80%', data:probLabels.map(()=>80), borderColor:'#f5b301', borderDash:[6,4], borderWidth:1.6, pointRadius:0, fill:false }
+    ]},
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:LEG},
+      scales:{ x:SC.x, y:{ grid:GRID, beginAtZero:true, max:100, ticks:{ color:'#8ba0c0', callback:v=>v+'%' } } } }
+  });
+
+  var muestras = MC.muestras;
+  if (muestras && muestras.length) {
+    var min = muestras[0], max = muestras[muestras.length-1];
+    var nBins = 32, ancho = (max-min)/nBins;
+    var bins = new Array(nBins).fill(0);
+    muestras.forEach(v=>{ var i=Math.floor((v-min)/ancho); if(i>=nBins)i=nBins-1; if(i<0)i=0; bins[i]++; });
+    var binLabels = bins.map((_,i)=>Math.round((min+ancho*(i+0.5))/1000)+'k');
+
+    oeeCharts.hist = new Chart(document.getElementById('oeeChHist'), {
+      type:'bar',
+      data:{ labels: binLabels, datasets:[{
+        label:'Frecuencia', data: bins,
+        backgroundColor: bins.map((_,i)=>(min+ancho*(i+0.5))>=OEE_CFG.metaMes?'rgba(34,197,94,.80)':'rgba(239,68,68,.80)'),
+        borderWidth:1, borderRadius:3
+      }]},
+      options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
+        scales:{ x:{ grid:{display:false}, ticks:{ color:'#8ba0c0', maxRotation:0, autoSkip:true, maxTicksLimit:12 } }, y:{ grid:GRID, beginAtZero:true, ticks:{ color:'#8ba0c0' } } } }
+    });
+  }
+}
+
+// ============================================================
+// 📝 APORTES — carga, filtros y render
+// ============================================================
+// 🔷 aportesCache ya está declarado globalmente arriba
+
+async function cargarYRenderAportes() {
+  const cont = document.getElementById('aportesContent');
+  if (!cont) return;
+  cont.innerHTML = '<p style="color:var(--text-secondary);">⏳ Cargando aportes...</p>';
+  try {
+    const res = await fetch('/.netlify/functions/aporte', { cache: 'no-store' });
+    if (!res.ok) throw new Error(await res.text());
+    aportesCache = await res.json();
+    renderAportes();
+  } catch (err) {
+    cont.innerHTML = '<p style="color:var(--danger);">❌ Error al cargar aportes: ' + err.message + '</p>';
+  }
+}
+
+function renderAportes() {
+  const cont = document.getElementById('aportesContent');
+  if (!cont) return;
+
+  let lista = aportesCache;
+  if (currentContrato !== CONTRATO_TODOS) {
+    lista = lista.filter(a => a.contrato === currentContrato);
+  }
+
+  const telarF = (document.getElementById('ap-filtro-telar')?.value || '').trim();
+  const claseF = (document.getElementById('ap-filtro-clase')?.value || '').trim();
+  const desdeF = document.getElementById('ap-filtro-desde')?.value || '';
+
+  if (telarF) {
+    const t = telarF.padStart(2, '0');
+    lista = lista.filter(a => a.telar === t);
+  }
+  if (claseF) lista = lista.filter(a => a.clase === claseF);
+  if (desdeF) lista = lista.filter(a => (a.fecha || '') >= desdeF);
+
+  const info = document.getElementById('ap-filtro-info');
+  if (info) info.textContent = '· ' + lista.length + ' aporte(s)';
+
+  if (!lista.length) {
+    cont.innerHTML = '<p>No hay aportes con los filtros actuales.</p>';
+    return;
+  }
+
+  const porClase = {};
+  lista.forEach(a => { porClase[a.clase] = (porClase[a.clase] || 0) + 1; });
+  const clasesHtml = Object.entries(porClase)
+    .map(([k, v]) => `<span class="badge badge-ok">${k}: ${v}</span>`).join(' ');
+
+  let html = '<div style="margin-bottom:14px; padding:12px; background:var(--glass); border-radius:8px;">' +
+    '<strong>Total:</strong> ' + lista.length +
+    (currentContrato !== CONTRATO_TODOS ? ' · Contrato ' + currentContrato : '') +
+    ' &nbsp;·&nbsp; ' + clasesHtml + '</div>';
+
+  const cols = ['fecha', 'hora', 'telar', 'contrato', 'nombre', 'lote', 'estilo', 'clase', 'descripcion'];
+  html += '<div class="table-wrapper"><table><thead><tr>' +
+    cols.map(c => '<th>' + c + '</th>').join('') +
+    '</tr></thead><tbody>';
+  lista.slice().reverse().forEach(a => {
+    html += '<tr>' + cols.map(c => '<td>' + (a[c] || '') + '</td>').join('') + '</tr>';
+  });
+  html += '</tbody></table></div>';
+  cont.innerHTML = html;
+}
+
+// Listeners de filtros de aportes (script al final del body, DOM ya listo)
+['ap-filtro-telar', 'ap-filtro-clase', 'ap-filtro-desde'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) {
+    el.addEventListener('input', renderAportes);
+    el.addEventListener('change', renderAportes);
+  }
+});
+const btnRefAportes = document.getElementById('ap-btn-refresh');
+if (btnRefAportes) btnRefAportes.addEventListener('click', cargarYRenderAportes);
 </script>
 
 <!-- ========================================================== -->
@@ -1721,7 +2313,6 @@ setTimeout(function() { cargarArchivosPrecargados(); }, 500);
     </div>
   </form>
 </section>
-
 
 <script>
 (function() {
@@ -1825,10 +2416,8 @@ setTimeout(function() { cargarArchivosPrecargados(); }, 500);
 
       document.getElementById('mensaje-confirmacion').style.display = 'block';
       this.reset();
-      // dejar solo la primera fila
       while (contenedor.children.length > 1) contenedor.removeChild(contenedor.lastChild);
 
-      // recargar la pestaña Aportes
       if (typeof cargarYRenderAportes === 'function') cargarYRenderAportes();
 
       setTimeout(() => {
@@ -1842,93 +2431,7 @@ setTimeout(function() { cargarArchivosPrecargados(); }, 500);
     }
   });
 })();
-
-// ============================================================
-// 📝 APORTES — carga, filtros y render
-// ============================================================
-let aportesCache = [];
-
-async function cargarYRenderAportes() {
-  const cont = document.getElementById('aportesContent');
-  if (!cont) return;
-  cont.innerHTML = '<p style="color:var(--text-secondary);">⏳ Cargando aportes...</p>';
-  try {
-    const res = await fetch('/.netlify/functions/aporte', { cache: 'no-store' });
-    if (!res.ok) throw new Error(await res.text());
-    aportesCache = await res.json();
-    renderAportes();
-  } catch (err) {
-    cont.innerHTML = '<p style="color:var(--danger);">❌ Error al cargar aportes: ' + err.message + '</p>';
-  }
-}
-
-function renderAportes() {
-  const cont = document.getElementById('aportesContent');
-  if (!cont) return;
-
-  // Filtro por contrato vigente
-  let lista = aportesCache;
-  if (currentContrato !== CONTRATO_TODOS) {
-    lista = lista.filter(a => a.contrato === currentContrato);
-  }
-
-  // Filtros locales
-  const telarF = (document.getElementById('ap-filtro-telar')?.value || '').trim();
-  const claseF = (document.getElementById('ap-filtro-clase')?.value || '').trim();
-  const desdeF = document.getElementById('ap-filtro-desde')?.value || '';
-
-  if (telarF) {
-    const t = telarF.padStart(2, '0');
-    lista = lista.filter(a => a.telar === t);
-  }
-  if (claseF) lista = lista.filter(a => a.clase === claseF);
-  if (desdeF) lista = lista.filter(a => (a.fecha || '') >= desdeF);
-
-  // Info
-  const info = document.getElementById('ap-filtro-info');
-  if (info) info.textContent = '· ' + lista.length + ' aporte(s)';
-
-  if (!lista.length) {
-    cont.innerHTML = '<p>No hay aportes con los filtros actuales.</p>';
-    return;
-  }
-
-  // Conteo por clase
-  const porClase = {};
-  lista.forEach(a => { porClase[a.clase] = (porClase[a.clase] || 0) + 1; });
-  const clasesHtml = Object.entries(porClase)
-    .map(([k, v]) => `<span class="badge badge-ok">${k}: ${v}</span>`).join(' ');
-
-  let html = '<div style="margin-bottom:14px; padding:12px; background:var(--glass); border-radius:8px;">' +
-    '<strong>Total:</strong> ' + lista.length +
-    (currentContrato !== CONTRATO_TODOS ? ' · Contrato ' + currentContrato : '') +
-    ' &nbsp;·&nbsp; ' + clasesHtml + '</div>';
-
-  const cols = ['fecha', 'hora', 'telar', 'contrato', 'nombre', 'lote', 'estilo', 'clase', 'descripcion'];
-  html += '<div class="table-wrapper"><table><thead><tr>' +
-    cols.map(c => '<th>' + c + '</th>').join('') +
-    '</tr></thead><tbody>';
-  lista.slice().reverse().forEach(a => {
-    html += '<tr>' + cols.map(c => '<td>' + (a[c] || '') + '</td>').join('') + '</tr>';
-  });
-  html += '</tbody></table></div>';
-  cont.innerHTML = html;
-}
-
-// Listeners de filtros
-document.addEventListener('DOMContentLoaded', () => {
-  ['ap-filtro-telar', 'ap-filtro-clase', 'ap-filtro-desde'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.addEventListener('input', renderAportes);
-    if (el) el.addEventListener('change', renderAportes);
-  });
-  const btnRef = document.getElementById('ap-btn-refresh');
-  if (btnRef) btnRef.addEventListener('click', cargarYRenderAportes);
-});
-
-
 </script>
-
 
 </body>
 </html>
