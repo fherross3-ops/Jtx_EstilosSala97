@@ -552,7 +552,7 @@ const STORAGE_KEY = 'tejeduria_history_final_v2';
 const TOTAL_TELARES = 97;
 
 // 🔷 Distribución de telares por contrato
-const CONTRATOS = {
+const CONTRATOS_TODOS = {
   'C01': ['01','02','03','04','10','11','12','13','14','19','20','21','22','23'],
   'C02': ['05','06','07','08','09','15','16','17','18','24','25','26','27','28'],
   'C03': ['29','30','31','32','33','38','39','40','41','42','48','49','50','51'],
@@ -564,7 +564,23 @@ const CONTRATOS = {
   'C09': ['105','106'],
   'C10': ['107','108','109','110']
 };
+
+// 🔷 Solo se trabaja con C01..C07 = 97 telares
+const CONTRATOS_VISIBLES = ['C01','C02','C03','C04','C05','C06','C07'];
+
+// Universo reducido: solo los contratos visibles
+const CONTRATOS = {};
+CONTRATOS_VISIBLES.forEach(function(c) {
+  CONTRATOS[c] = CONTRATOS_TODOS[c];
+});
+
+// Lista plana de los 97 telares del universo visible
+const TELARES_UNIVERSO = CONTRATOS_VISIBLES.reduce(function(acc, c) {
+  return acc.concat(CONTRATOS[c]);
+}, []).sort(function(a,b){ return parseInt(a) - parseInt(b); });
+
 const CONTRATO_TODOS = 'all';
+
 
 let allData = {};
 let currentFecha = null;
@@ -906,9 +922,13 @@ function resumenRapido(datos, fecha, fileName, contrato, timestamp) {
   var telaresContrato = (contrato && contrato !== CONTRATO_TODOS && CONTRATOS[contrato])
     ? CONTRATOS[contrato] : null;
 
-  var datosF = telaresContrato
-    ? datos.filter(function(d) { return telaresContrato.indexOf(d['Telar']) !== -1; })
-    : datos;
+  var datosF;
+if (telaresContrato) {
+  datosF = datos.filter(function(d) { return telaresContrato.indexOf(d['Telar']) !== -1; });
+} else {
+  // 🔷 "Todos": solo los 97 telares
+  datosF = datos.filter(function(d) { return TELARES_UNIVERSO.indexOf(d['Telar']) !== -1; });
+}
 
   var activos = datosF.filter(function(d) { return d['Usar Capa 2'] === 'Sí'; });
   var totalPasadas = activos.reduce(function(s,d) { return s + d['Pasadas estimadas']; }, 0);
@@ -922,8 +942,7 @@ function resumenRapido(datos, fecha, fileName, contrato, timestamp) {
     if (d['Usar Capa 2'] === 'Sí' && d['Telar'] && d['Telar'] !== 'S/N') telaresActivosSet.add(d['Telar']);
   });
 
-  var totalTelares = telaresContrato ? telaresContrato.length : Math.max(TOTAL_TELARES, telaresActivosSet.size);
-  var telaresActivosCount = telaresActivosSet.size;
+  var totalTelares = telaresContrato ? telaresContrato.length : TELARES_UNIVERSO.length;
   var telaresInactivosCount = Math.max(0, totalTelares - telaresActivosCount);
 
   var ut = totalPasadas > 0 ? ((totalTrama+totalUrd)/totalPasadas)*100000 : 0;
@@ -957,9 +976,14 @@ function calcularTodo(datosOriginales, fecha, fileName, contrato) {
   var telaresContrato = (contrato && contrato !== CONTRATO_TODOS && CONTRATOS[contrato])
     ? CONTRATOS[contrato] : null;
 
-  var datos = telaresContrato
-    ? datosOriginales.filter(function(d) { return telaresContrato.indexOf(d['Telar']) !== -1; })
-    : datosOriginales;
+  var datos;
+if (telaresContrato) {
+  // Contrato específico (C01..C07)
+  datos = datosOriginales.filter(function(d) { return telaresContrato.indexOf(d['Telar']) !== -1; });
+} else {
+  // 🔷 "Todos": solo los 97 telares del universo visible
+  datos = datosOriginales.filter(function(d) { return TELARES_UNIVERSO.indexOf(d['Telar']) !== -1; });
+}
 
   var activos = datos.filter(function(d) { return d['Usar Capa 2'] === 'Sí'; });
   var totalPasadas = activos.reduce(function(s,d) { return s + d['Pasadas estimadas']; }, 0);
@@ -984,9 +1008,10 @@ function calcularTodo(datosOriginales, fecha, fileName, contrato) {
     totalTelares = telaresContrato.length;
     telaresInactivosCount = Math.max(0, totalTelares - telaresActivosCount);
   } else {
-    totalTelares = Math.max(TOTAL_TELARES, telaresUnicos.size);
-    telaresInactivosCount = Math.max(0, totalTelares - telaresActivosCount);
-  }
+  // 🔷 Modo "Todos": universo = solo los 97 telares de C01..C07
+  totalTelares = TELARES_UNIVERSO.length;   // = 97
+  telaresInactivosCount = Math.max(0, totalTelares - telaresActivosCount);
+}
 
   var pctActivos = totalTelares > 0 ? (telaresActivosCount / totalTelares) * 100 : 0;
   var pctInactivos = totalTelares > 0 ? (telaresInactivosCount / totalTelares) * 100 : 0;
@@ -1939,11 +1964,11 @@ function renderOEE(){
   var RITMO_TEND = REG.a + REG.b*(ultimoDia + 1 + DIAS_RESTANTES/2);
   var PROY_CONSERV = TOTAL_METROS + RITMO_7D*DIAS_RESTANTES;
 
-  document.getElementById('oeeBadges').innerHTML =
-    '<div class="oee-badge">Periodo <b>' + OEE_DIAS[0].fechaRaw + ' – ' + OEE_DIAS[OEE_DIAS.length-1].fechaRaw + '</b></div>' +
-    '<div class="oee-badge">Meta mes <b>' + oeeNf(OEE_CFG.metaMes) + ' m</b></div>' +
-    '<div class="oee-badge">Índice meta <b>&lt; ' + OEE_CFG.metaIndice + '</b></div>' +
-    (currentContrato !== CONTRATO_TODOS ? '<div class="oee-badge">Contrato <b>' + currentContrato + '</b></div>' : '');
+ document.getElementById('oeeBadges').innerHTML =
+  '<div class="oee-badge">Periodo <b>' + OEE_DIAS[0].fechaRaw + ' – ' + OEE_DIAS[OEE_DIAS.length-1].fechaRaw + '</b></div>' +
+  '<div class="oee-badge">Universo <b>' + (currentContrato === CONTRATO_TODOS ? '97 telares (C01–C07)' : 'Contrato ' + currentContrato) + '</b></div>' +
+  '<div class="oee-badge">Meta mes <b>' + oeeNf(OEE_CFG.metaMes) + ' m</b></div>' +
+  '<div class="oee-badge">Índice meta <b>&lt; ' + OEE_CFG.metaIndice + '</b></div>';
 
   var avance = TOTAL_METROS/OEE_CFG.metaMes;
   var cards = [
