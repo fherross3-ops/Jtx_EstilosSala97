@@ -937,13 +937,17 @@ if (telaresContrato) {
   var totalUrd = activos.reduce(function(s,d) { return s + d['R Abs. Urd.']; }, 0);
   var totalManual = activos.reduce(function(s,d) { return s + d['R Abs. Manual']; }, 0);
 
-  var telaresActivosSet = new Set();
+    var telaresActivosSet = new Set();
   datosF.forEach(function(d) {
     if (d['Usar Capa 2'] === 'Sí' && d['Telar'] && d['Telar'] !== 'S/N') telaresActivosSet.add(d['Telar']);
   });
 
+  // 🔷 FALTABA esta línea
+  var telaresActivosCount = telaresActivosSet.size;
+
   var totalTelares = telaresContrato ? telaresContrato.length : TELARES_UNIVERSO.length;
   var telaresInactivosCount = Math.max(0, totalTelares - telaresActivosCount);
+
 
   var ut = totalPasadas > 0 ? ((totalTrama+totalUrd)/totalPasadas)*100000 : 0;
 
