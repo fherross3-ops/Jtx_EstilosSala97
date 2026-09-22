@@ -2085,6 +2085,16 @@ function renderOEECharts(MC, REG, TOTAL_METROS, ultimoDia, diasMes, DIAS_RESTANT
   };
   var LEG = { labels:{ color:'#8ba0c0', boxWidth:11, boxHeight:11, usePointStyle:true, pointStyle:'circle', padding:14 } };
 
+  // 🔷 Desactivar datalabels por defecto en TODAS las gráficas del OEE
+  var NO_LABELS = { display: false };
+
+  // 🔷 Formateadores numéricos en español
+  var fmtMiles = function(v){ return v==null ? '' : Number(v).toLocaleString('es-ES',{maximumFractionDigits:0}); };
+  var fmt1 = function(v){ return v==null ? '' : Number(v).toLocaleString('es-ES',{minimumFractionDigits:1,maximumFractionDigits:1}); };
+  var fmt2 = function(v){ return v==null ? '' : Number(v).toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2}); };
+  var fmtPct = function(v){ return v==null ? '' : Number(v).toLocaleString('es-ES',{minimumFractionDigits:1,maximumFractionDigits:1})+'%'; };
+
+  // ---------- 12.1 Producción diaria + proyección ----------
   var labels = Array.from({length:diasMes},(_,i)=>String(i+1));
   var realArr = labels.map((_,i)=>{ var d=OEE_DIAS.find(x=>x.dia===i+1); return d?d.metros:null; });
   var proyArr = labels.map((_,i)=>{ var dia=i+1; if(dia<=ultimoDia) return null; return Math.max(0, REG.a+REG.b*dia); });
@@ -2097,9 +2107,30 @@ function renderOEECharts(MC, REG, TOTAL_METROS, ultimoDia, diasMes, DIAS_RESTANT
       { label:'Proyección', data:proyArr, backgroundColor:'rgba(6,182,212,.30)', borderRadius:3, barPercentage:.8 },
       { label:'Tendencia', data:tendArr, type:'line', borderColor:'#f5b301', borderWidth:2, borderDash:[6,4], pointRadius:0, tension:.3, fill:false }
     ]},
-    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:LEG}, scales:SC }
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:LEG,
+        datalabels:NO_LABELS,
+        tooltip:{
+          callbacks:{
+            title: function(items){ return 'Día ' + items[0].label; },
+            label: function(c){
+              var v = c.parsed.y;
+              if (v === null || v === undefined) return c.dataset.label + ': —';
+              return c.dataset.label + ': ' + fmtMiles(v) + ' m';
+            }
+          }
+        }
+      },
+      scales:{
+        x: SC.x,
+        y:{ grid:GRID, beginAtZero:true, ticks:{ color:'#8ba0c0', callback:function(v){ return fmtMiles(v); } } }
+      }
+    }
   });
 
+  // ---------- 12.2 Acumulado vs meta ----------
   var acum=0;
   var acumReal = labels.map((_,i)=>{ var d=OEE_DIAS.find(x=>x.dia===i+1); if(d){acum+=d.metros; return acum;} return null; });
   var acumProy = labels.map((_,i)=>{ var dia=i+1; if(dia<ultimoDia) return null; if(dia===ultimoDia) return TOTAL_METROS; var t=TOTAL_METROS; for(var d=ultimoDia+1;d<=dia;d++) t+=Math.max(0,REG.a+REG.b*d); return t; });
@@ -2112,10 +2143,30 @@ function renderOEECharts(MC, REG, TOTAL_METROS, ultimoDia, diasMes, DIAS_RESTANT
       { label:'Proyección', data:acumProy, borderColor:'#06b6d4', borderDash:[6,4], borderWidth:2.5, pointRadius:0, tension:.25, fill:false },
       { label:'Meta lineal', data:metaLineal, borderColor:'#ef4444', borderWidth:1.6, borderDash:[3,3], pointRadius:0, fill:false }
     ]},
-    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:LEG},
-      scales:{ x:SC.x, y:{ grid:GRID, beginAtZero:true, ticks:{ color:'#8ba0c0', callback:v=>(v/1000).toFixed(0)+'k' } } } }
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:LEG,
+        datalabels:NO_LABELS,
+        tooltip:{
+          callbacks:{
+            title: function(items){ return 'Día ' + items[0].label; },
+            label: function(c){
+              var v = c.parsed.y;
+              if (v === null || v === undefined) return c.dataset.label + ': —';
+              return c.dataset.label + ': ' + fmtMiles(v) + ' m';
+            }
+          }
+        }
+      },
+      scales:{
+        x:SC.x,
+        y:{ grid:GRID, beginAtZero:true, ticks:{ color:'#8ba0c0', callback:function(v){ return fmtMiles(v/1000)+'k'; } } }
+      }
+    }
   });
 
+  // ---------- 12.3 OEE y componentes ----------
   var labelsDias = OEE_DIAS.map(d=>d.dia+'/'+d.fecha.split('-')[2]);
   oeeCharts.oee = new Chart(document.getElementById('oeeChOEE'), {
     type:'line',
@@ -2125,10 +2176,25 @@ function renderOEECharts(MC, REG, TOTAL_METROS, ultimoDia, diasMes, DIAS_RESTANT
       { label:'Calidad', data:OEE_DIAS.map(d=>+(d.Q*100).toFixed(1)), borderColor:'#f5b301', borderWidth:2, pointRadius:2.5, tension:.3, fill:false },
       { label:'OEE', data:OEE_DIAS.map(d=>+(d.OEE*100).toFixed(1)), borderColor:'#06b6d4', backgroundColor:'rgba(6,182,212,.12)', borderWidth:3, pointRadius:3.5, tension:.3, fill:true }
     ]},
-    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:LEG},
-      scales:{ x:SC.x, y:{ grid:GRID, beginAtZero:true, max:100, ticks:{ color:'#8ba0c0', callback:v=>v+'%' } } } }
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:LEG,
+        datalabels:NO_LABELS,
+        tooltip:{
+          callbacks:{
+            label: function(c){ return c.dataset.label + ': ' + fmtPct(c.parsed.y); }
+          }
+        }
+      },
+      scales:{
+        x:SC.x,
+        y:{ grid:GRID, beginAtZero:true, max:100, ticks:{ color:'#8ba0c0', callback:function(v){ return v+'%'; } } }
+      }
+    }
   });
 
+  // ---------- 12.4 Índice de paros ----------
   oeeCharts.idx = new Chart(document.getElementById('oeeChIdx'), {
     type:'line',
     data:{ labels: labelsDias, datasets:[
@@ -2136,10 +2202,25 @@ function renderOEECharts(MC, REG, TOTAL_METROS, ultimoDia, diasMes, DIAS_RESTANT
         pointBackgroundColor: OEE_DIAS.map(d=>d.indice>OEE_CFG.metaIndice?'#ef4444':'#22c55e'), pointBorderColor:'#0d1626', pointBorderWidth:2 },
       { label:'Meta '+OEE_CFG.metaIndice, data:OEE_DIAS.map(()=>OEE_CFG.metaIndice), borderColor:'#ef4444', borderWidth:1.8, borderDash:[7,5], pointRadius:0, fill:false }
     ]},
-    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:LEG},
-      scales:{ x:SC.x, y:{ grid:GRID, beginAtZero:false, suggestedMin:3.5, suggestedMax:6, ticks:{ color:'#8ba0c0', callback:v=>v.toFixed(1) } } } }
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:LEG,
+        datalabels:NO_LABELS,
+        tooltip:{
+          callbacks:{
+            label: function(c){ return c.dataset.label + ': ' + fmt2(c.parsed.y); }
+          }
+        }
+      },
+      scales:{
+        x:SC.x,
+        y:{ grid:GRID, beginAtZero:false, suggestedMin:3.5, suggestedMax:6, ticks:{ color:'#8ba0c0', callback:function(v){ return fmt1(v); } } }
+      }
+    }
   });
 
+  // ---------- 12.5 Evolución de la probabilidad ----------
   var probLabels=[], probData=[];
   for(var d=6; d<=ultimoDia; d++){
     var p = oeeMonteCarlo(OEE_DIAS, d, diasMes, 2500).prob;
@@ -2152,10 +2233,25 @@ function renderOEECharts(MC, REG, TOTAL_METROS, ultimoDia, diasMes, DIAS_RESTANT
       { label:'Probabilidad de cumplimiento', data:probData, borderColor:'#22c55e', backgroundColor:'rgba(34,197,94,.15)', borderWidth:3, pointRadius:4, tension:.35, fill:true, pointBackgroundColor:'#22c55e', pointBorderColor:'#0d1626', pointBorderWidth:2 },
       { label:'Umbral 80%', data:probLabels.map(()=>80), borderColor:'#f5b301', borderDash:[6,4], borderWidth:1.6, pointRadius:0, fill:false }
     ]},
-    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:LEG},
-      scales:{ x:SC.x, y:{ grid:GRID, beginAtZero:true, max:100, ticks:{ color:'#8ba0c0', callback:v=>v+'%' } } } }
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:LEG,
+        datalabels:NO_LABELS,
+        tooltip:{
+          callbacks:{
+            label: function(c){ return c.dataset.label + ': ' + fmtPct(c.parsed.y); }
+          }
+        }
+      },
+      scales:{
+        x:SC.x,
+        y:{ grid:GRID, beginAtZero:true, max:100, ticks:{ color:'#8ba0c0', callback:function(v){ return v+'%'; } } }
+      }
+    }
   });
 
+  // ---------- 12.6 Histograma Monte Carlo ----------
   var muestras = MC.muestras;
   if (muestras && muestras.length) {
     var min = muestras[0], max = muestras[muestras.length-1];
@@ -2171,8 +2267,23 @@ function renderOEECharts(MC, REG, TOTAL_METROS, ultimoDia, diasMes, DIAS_RESTANT
         backgroundColor: bins.map((_,i)=>(min+ancho*(i+0.5))>=OEE_CFG.metaMes?'rgba(34,197,94,.80)':'rgba(239,68,68,.80)'),
         borderWidth:1, borderRadius:3
       }]},
-      options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
-        scales:{ x:{ grid:{display:false}, ticks:{ color:'#8ba0c0', maxRotation:0, autoSkip:true, maxTicksLimit:12 } }, y:{ grid:GRID, beginAtZero:true, ticks:{ color:'#8ba0c0' } } } }
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        plugins:{
+          legend:{ display:false },
+          datalabels:NO_LABELS,
+          tooltip:{
+            callbacks:{
+              title: function(items){ return '≈ ' + fmtMiles(min + ancho*(items[0].dataIndex+0.5)) + ' m'; },
+              label: function(c){ return fmtMiles(c.parsed.y) + ' simulaciones'; }
+            }
+          }
+        },
+        scales:{
+          x:{ grid:{display:false}, ticks:{ color:'#8ba0c0', maxRotation:0, autoSkip:true, maxTicksLimit:12 } },
+          y:{ grid:GRID, beginAtZero:true, ticks:{ color:'#8ba0c0', callback:function(v){ return fmtMiles(v); } } }
+        }
+      }
     });
   }
 }
