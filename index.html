@@ -316,6 +316,13 @@ tr:hover td { background: var(--glass); }
 
 #tab-oee .oee-footer{margin-top:26px;padding-top:18px;border-top:1px solid var(--oee-border);font-size:.72rem;color:var(--oee-muted);line-height:1.7;}
 #tab-oee .oee-footer code{background:#0d1626;padding:2px 7px;border-radius:5px;color:#7dd3fc;font-size:.71rem;}
+
+/* 🔷 Permite ocultar tarjetas del OEE sin borrarlas */
+#tab-oee .oee-card.oee-hidden { display: none !important; }
+
+
+
+
 </style>
 
 <!-- 100% privacy-first analytics -->
@@ -464,12 +471,12 @@ tr:hover td { background: var(--glass); }
               <p class="oee-hint">Por 100,000 pasadas · Meta &lt; 5.0</p>
               <div class="oee-chart-box"><canvas id="oeeChIdx"></canvas></div>
             </div>
-            <div class="oee-card">
+            <div class="oee-card oee-hidden">
               <h3>Tendencia de la probabilidad de cumplimiento</h3>
               <p class="oee-hint">Probabilidad calculada día a día</p>
               <div class="oee-chart-box"><canvas id="oeeChProb"></canvas></div>
             </div>
-            <div class="oee-card">
+            <div class=""oee-card oee-hidden"">
               <h3>Distribución de la producción proyectada</h3>
               <p class="oee-hint">10,000 simulaciones Monte Carlo · cierre de mes</p>
               <div class="oee-chart-box"><canvas id="oeeChHist"></canvas></div>
