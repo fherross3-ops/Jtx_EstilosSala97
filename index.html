@@ -419,8 +419,11 @@ tr:hover td { background: var(--glass); }
           <label for="filtro-fecha-hasta">Hasta:</label>
           <input type="date" id="filtro-fecha-hasta">
           <label for="filtro-estilo">Estilo:</label>
-          <input type="text" id="filtro-estilo" placeholder="Ej: Arandano" style="width:140px;">
-          <button class="btn-filtrar" id="btnFiltrarTelar">🔍 Filtrar</button>
+<input type="text" id="filtro-estilo" placeholder="Ej: Arandano" style="width:140px;">
+<label for="filtro-lote">Lote:</label>
+<input type="text" id="filtro-lote" placeholder="Ej: 102156" style="width:110px;">
+<button class="btn-filtrar" id="btnFiltrarTelar">🔍 Filtrar</button>
+
           <button class="btn-filtrar" id="btnLimpiarFiltros" style="background:var(--bg-tertiary);color:var(--text-secondary);">✖ Limpiar</button>
         </div>
         <div class="table-wrapper" id="tableTelar"></div>
@@ -1575,7 +1578,7 @@ function renderTelarResumen(resumenTelar) {
   document.getElementById('tableTelar').innerHTML = html;
 }
 
-function renderTelarFiltrado(telar, fechaDesde, fechaHasta, estilo) {
+function renderTelarFiltrado(telar, fechaDesde, fechaHasta, estilo, lote) {
   var todosLosRegistros = [];
   Object.keys(allData).forEach(function(fecha) {
     var datosDia = allData[fecha].datos || [];
@@ -1591,10 +1594,13 @@ function renderTelarFiltrado(telar, fechaDesde, fechaHasta, estilo) {
     return;
   }
 
+  var loteF = (lote || '').trim().toLowerCase();
+
   var filtrados = todosLosRegistros.filter(function(row) {
     var cumpleTelar = (telar === 'all') ? true : (row['Telar'] === telar);
     var cumpleFecha = true;
     var cumpleEstilo = true;
+    var cumpleLote = true;
 
     if (fechaDesde && row['Fecha']) {
       var p = row['Fecha'].split('/');
@@ -1613,7 +1619,12 @@ function renderTelarFiltrado(telar, fechaDesde, fechaHasta, estilo) {
     if (estilo && estilo.trim() !== '') {
       cumpleEstilo = str(row['Estilo'] || '').toLowerCase().includes(estilo.toLowerCase());
     }
-    return cumpleTelar && cumpleFecha && cumpleEstilo;
+    // 🔷 Filtro por Lote (coincidencia parcial, sin distinguir mayúsculas)
+    if (loteF !== '') {
+      cumpleLote = str(row['Lote'] || '').toLowerCase().includes(loteF);
+    }
+
+    return cumpleTelar && cumpleFecha && cumpleEstilo && cumpleLote;
   });
 
   if (filtrados.length === 0) {
@@ -1621,7 +1632,8 @@ function renderTelarFiltrado(telar, fechaDesde, fechaHasta, estilo) {
     return;
   }
 
-  var columnas = ['Fecha','Día','Turno','Actividad','Telar','Operador','Estilo','PPP','Metros tejidos','RPM','% Efic. Máquina','% Efic. Operador','Trama/100k','Urd/100k','Manual/100k','U+T/100k','Total/100k'];
+  // 🔷 Se agrega columna Lote al resultado
+  var columnas = ['Fecha','Día','Turno','Actividad','Telar','Operador','Estilo','Lote','PPP','Metros tejidos','RPM','% Efic. Máquina','% Efic. Operador','Trama/100k','Urd/100k','Manual/100k','U+T/100k','Total/100k'];
   var html = '<table><thead><tr>' + columnas.map(function(c) { return '<th>' + c + '</th>'; }).join('') + '</tr></thead><tbody>';
   filtrados.forEach(function(row) {
     html += '<tr>' + columnas.map(function(c) {
@@ -1665,7 +1677,8 @@ document.getElementById('btnFiltrarTelar').addEventListener('click', function() 
   var fechaDesde = document.getElementById('filtro-fecha-desde').value;
   var fechaHasta = document.getElementById('filtro-fecha-hasta').value;
   var estilo = document.getElementById('filtro-estilo').value;
-  renderTelarFiltrado(telar, fechaDesde, fechaHasta, estilo);
+  var lote = document.getElementById('filtro-lote').value;
+  renderTelarFiltrado(telar, fechaDesde, fechaHasta, estilo, lote);
 });
 
 document.getElementById('btnLimpiarFiltros').addEventListener('click', function() {
@@ -1673,6 +1686,7 @@ document.getElementById('btnLimpiarFiltros').addEventListener('click', function(
   document.getElementById('filtro-fecha-desde').value = '';
   document.getElementById('filtro-fecha-hasta').value = '';
   document.getElementById('filtro-estilo').value = '';
+  document.getElementById('filtro-lote').value = '';   // 🔷 NUEVO
   currentContrato = CONTRATO_TODOS;
   var cSel = document.getElementById('contractSelect');
   if (cSel) cSel.value = 'all';
