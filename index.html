@@ -387,6 +387,7 @@ tr:hover td { background: var(--glass); }
         <div class="tab" data-tab="historial">📅 Historial</div>
         <div class="tab" data-tab="oee">📊 OEE</div>
         <div class="tab" data-tab="alertas">⚠️ Alertas</div>
+        <div class="tab" data-tab="aportes-dash">📊 Aportes Analytics</div>
         <div class="tab" data-tab="aportes">📝 Aportes</div>
         <div class="tab" data-tab="valid">✅ Validación</div>
       </div>
@@ -525,6 +526,32 @@ tr:hover td { background: var(--glass); }
 
       <div id="tab-alertas" class="tab-content"><div id="alertasContent"></div></div>
 
+
+<div id="tab-aportes-dash" class="tab-content">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
+    <div>
+      <div class="section-title" style="margin:0;">📊 Dashboard analítico de Aportes</div>
+      <div style="font-size:12px;color:var(--text-secondary);margin-top:4px;">
+        KPIs · gráficos · filtros · exportación — vista embebida desde <code>aportes-dashboard.html</code>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="btn btn-secondary" id="btnOpenAportesDash" type="button">🔗 Abrir en pestaña nueva</button>
+      <button class="btn btn-secondary" id="btnReloadAportesDash" type="button">🔄 Recargar</button>
+    </div>
+  </div>
+  <div style="background:var(--bg-tertiary);border:1px solid var(--border);border-radius:12px;overflow:hidden;">
+    <iframe id="iframeAportesDash"
+            src="about:blank"
+            style="width:100%;height:1000px;border:0;display:block;background:var(--bg-primary);"
+            loading="lazy"
+            referrerpolicy="no-referrer"></iframe>
+  </div>
+</div>
+
+
+
+
       <div id="tab-aportes" class="tab-content">
         <div class="filtros-telar">
           <label>Telar:</label>
@@ -605,6 +632,18 @@ let aportesCache = []; // 🔷 GLOBAL (antes estaba en el segundo script)
 const USUARIO_GITHUB = 'fherross3-ops';
 const REPOSITORIO_GITHUB = 'Jtx_EstilosSala97';
 const RAMA_GITHUB = 'main';
+
+// ============================================================
+// 📊 URL del dashboard standalone de aportes
+// ============================================================
+// Cambia esto según dónde alojes `aportes-dashboard.html`:
+//  · Mismo dominio que el index (Netlify):  './aportes-dashboard.html'
+//  · GitHub Pages:  'https://fherross3-ops.github.io/Jtx_EstilosSala97/aportes-dashboard.html'
+const APORTES_DASH_URL = './aportes-dashboard.html';
+
+
+
+
 
 async function cargarArchivosPrecargados() {
   showStatus('📂 Buscando archivos CSV en GitHub...', 'info');
@@ -1961,6 +2000,14 @@ document.querySelectorAll('.tab').forEach(function(tab) {
     if (tabId === 'dashboard' && currentFecha) renderCharts();
     if (tabId === 'oee' && typeof renderOEE === 'function') renderOEE();
    
+if (tabId === 'aportes-dash') {
+  const ifr = document.getElementById('iframeAportesDash');
+  if (ifr && (ifr.src === 'about:blank' || !ifr.src)) {
+    ifr.src = APORTES_DASH_URL + '?t=' + Date.now();
+  }
+}
+
+
 
 if (tabId === 'aportes' && typeof cargarYRenderAportes === 'function') {
   if (!aportesCache.length) cargarYRenderAportes();
@@ -2003,6 +2050,25 @@ setTimeout(function() {
     cargarYRenderAportes();
   }
 }, 1800);
+
+// ============================================================
+// 📊 Eventos del dashboard de aportes embebido
+// ============================================================
+(function initAportesDash() {
+  const ifr = document.getElementById('iframeAportesDash');
+  const btnOpen = document.getElementById('btnOpenAportesDash');
+  const btnReload = document.getElementById('btnReloadAportesDash');
+
+  function cargarIframe() {
+    if (ifr) ifr.src = APORTES_DASH_URL + '?t=' + Date.now();
+  }
+
+  if (btnOpen) btnOpen.addEventListener('click', function() {
+    window.open(APORTES_DASH_URL, '_blank', 'noopener');
+  });
+  if (btnReload) btnReload.addEventListener('click', cargarIframe);
+})();
+
 
 
 // ============================================================
