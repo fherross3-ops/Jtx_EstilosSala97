@@ -1671,6 +1671,56 @@ function poblarSelectorTelares() {
     });
 }
 
+// ============================================================
+// 🔎 Autocompletado de datos de telar para el formulario de aportes
+// ============================================================
+function obtenerInfoTelarParaAporte(telarValor) {
+  var info = { lote: '', estilo: '' };
+  if (!telarValor) return info;
+  var telarStr = String(telarValor).trim().padStart(2, '0');
+  if (!/^\d+$/.test(telarStr)) return info;
+
+  // 1) Buscar en datos de producción (allData), del más reciente al más antiguo
+  var fechas = Object.keys(allData).sort(function(a, b) {
+    var da = parsearFechaUniversal(a), db = parsearFechaUniversal(b);
+    return (da && db) ? db - da : 0; // DESC
+  });
+
+  for (var i = 0; i < fechas.length; i++) {
+    var datos = allData[fechas[i]].datos || [];
+    for (var j = datos.length - 1; j >= 0; j--) {
+      var row = datos[j];
+      if (row['Telar'] === telarStr) {
+        if (!info.lote && row['Lote']) info.lote = String(row['Lote']).trim();
+        if (!info.estilo && row['Estilo'] && row['Estilo'] !== 'SIN ESTILO')
+          info.estilo = String(row['Estilo']).trim();
+        if (info.lote && info.estilo) return info;
+      }
+    }
+  }
+
+  // 2) Fallback: aportes previos ya cargados
+  if (aportesCache && aportesCache.length) {
+    for (var k = aportesCache.length - 1; k >= 0; k--) {
+      var a = aportesCache[k];
+      if (a.telar === telarStr) {
+        if (!info.lote && a.lote) info.lote = a.lote;
+        if (!info.estilo && a.estilo) info.estilo = a.estilo;
+        if (info.lote && info.estilo) break;
+      }
+    }
+  }
+  return info;
+}
+
+
+
+
+
+
+
+
+
 // ---------- EVENTOS FILTROS TELAR ----------
 document.getElementById('btnFiltrarTelar').addEventListener('click', function() {
   var telar = document.getElementById('filtro-telar').value;
@@ -1693,6 +1743,47 @@ document.getElementById('btnLimpiarFiltros').addEventListener('click', function(
   renderAll();
 });
 
+// ============================================================
+// 📝 Aportes asociados a un telar (para mostrar en Alertas)
+// ============================================================
+function construirAportesTelarHtml(telarStr) {
+  var lista = (aportesCache || []).filter(function(a) {
+    return String(a.telar) === String(telarStr);
+  });
+
+  if (!lista.length) {
+    return '<div style="margin-top:10px;font-size:11px;color:var(--text-secondary);font-style:italic;">📝 Sin aportes registrados para este telar.</div>';
+  }
+
+  // Tomar los últimos 5 (los aportes se cargan en orden cronológico)
+  var ultimos = lista.slice(-5).reverse();
+  var encabezado = '📝 Aportes registrados (' + lista.length +
+                   (lista.length > 5 ? ' · mostrando los últimos 5' : '') + '):';
+
+  var items = ultimos.map(function(a) {
+    return '<div style="font-size:11px;padding:6px 9px;background:rgba(0,0,0,0.14);border-radius:5px;margin-bottom:4px;line-height:1.45;">' +
+      '<div><strong>' + (a.fecha || '') + ' ' + (a.hora || '') + '</strong>' +
+        ' · <span style="color:var(--accent);font-weight:600;">' + (a.clase || '') + '</span>' +
+        ' · <em>' + (a.nombre || 'Anónimo') + '</em>' +
+      '</div>' +
+      '<div style="color:var(--text-secondary);margin-top:2px;">' + (a.descripcion || '') + '</div>' +
+    '</div>';
+  }).join('');
+
+  return '<div style="margin-top:10px;padding-top:10px;border-top:1px dashed rgba(128,128,128,0.35);">' +
+    '<div style="font-size:11px;font-weight:600;color:var(--text-secondary);margin-bottom:6px;">' + encabezado + '</div>' +
+    items +
+  '</div>';
+}
+
+
+
+
+
+
+
+
+
 // ---------- ALERTAS ----------
 function renderAlertas(dataArg) {
   var alerts = [];
@@ -1708,9 +1799,23 @@ function renderAlertas(dataArg) {
   data.resumenEstilo.filter(function(e) { return e['U+T/100k'] >= 6; }).forEach(function(e) {
     alerts.push({ type: 'critical', title: '🔴 Estilo crítico: ' + e['Estilo'], desc: 'U+T/100k = ' + fmt(e['U+T/100k']) + ' (' + e['Metros'] + 'm)' });
   });
-  data.resumenTelar.filter(function(t) { return t['U+T/100k'] >= benchmark * 1.5; }).forEach(function(t) {
-    alerts.push({ type: 'critical', title: '🔴 Telar ' + t['Telar'] + ' fuera de control', desc: 'U+T/100k = ' + fmt(t['U+T/100k']) + ' · Estilo: ' + t['Estilo dominante'] });
+
+
+
+
+
+ data.resumenTelar.filter(function(t) { return t['U+T/100k'] >= benchmark * 1.5; }).forEach(function(t) {
+  alerts.push({
+    type: 'critical',
+    title: '🔴 Telar ' + t['Telar'] + ' fuera de control',
+    desc: 'U+T/100k = ' + fmt(t['U+T/100k']) + ' · Estilo: ' + t['Estilo dominante'],
+    extra: construirAportesTelarHtml(t['Telar'])   // 🆕 aportes asociados
   });
+});
+
+
+
+
   if (data.kpiGlobal['U+T / 100k'] >= benchmark) {
     alerts.push({ type: 'warning', title: '⚠️ ' + (currentContrato === CONTRATO_TODOS ? 'Sala' : 'Contrato ' + currentContrato) + ' supera benchmark (' + benchmark + ')', desc: 'U+T/100k = ' + fmt(data.kpiGlobal['U+T / 100k']) });
   }
@@ -1719,9 +1824,18 @@ function renderAlertas(dataArg) {
     document.getElementById('alertasContent').innerHTML = '<div class="alert-item" style="background:rgba(16,185,129,0.1);border-color:var(--success);"><strong>✅ Sin alertas</strong><br>Todo dentro de los parámetros esperados.</div>';
     return;
   }
-  document.getElementById('alertasContent').innerHTML = alerts.map(function(a) {
-    return '<div class="alert-item ' + (a.type === 'critical' ? 'critical' : '') + '"><strong>' + a.title + '</strong><br><span style="font-size:12px;color:var(--text-secondary);">' + a.desc + '</span></div>';
-  }).join('');
+
+
+
+ document.getElementById('alertasContent').innerHTML = alerts.map(function(a) {
+  return '<div class="alert-item ' + (a.type === 'critical' ? 'critical' : '') + '">' +
+    '<strong>' + a.title + '</strong><br>' +
+    '<span style="font-size:12px;color:var(--text-secondary);">' + a.desc + '</span>' +
+    (a.extra || '') +
+  '</div>';
+}).join('');
+
+
 }
 
 // ---------- HISTORIAL (por contrato) ----------
@@ -1846,10 +1960,25 @@ document.querySelectorAll('.tab').forEach(function(tab) {
     document.getElementById('tab-' + tabId).classList.add('active');
     if (tabId === 'dashboard' && currentFecha) renderCharts();
     if (tabId === 'oee' && typeof renderOEE === 'function') renderOEE();
-    if (tabId === 'aportes' && typeof cargarYRenderAportes === 'function') {
-      if (!aportesCache.length) cargarYRenderAportes();
-      else renderAportes();
-    }
+   
+
+if (tabId === 'aportes' && typeof cargarYRenderAportes === 'function') {
+  if (!aportesCache.length) cargarYRenderAportes();
+  else renderAportes();
+}
+if (tabId === 'alertas' && typeof cargarYRenderAportes === 'function') {
+  if (!aportesCache.length) {
+    cargarYRenderAportes().then(function() {
+      if (typeof renderAlertas === 'function') renderAlertas(vistaActual);
+    });
+  } else {
+    renderAlertas(vistaActual);
+  }
+}
+
+
+
+
     if (tabId === 'telar' && currentFecha) {
       var telarSelect = document.getElementById('filtro-telar');
       if (telarSelect && telarSelect.value === 'all' &&
@@ -1867,6 +1996,14 @@ document.querySelectorAll('.tab').forEach(function(tab) {
 // ---------- INIT ----------
 initTheme();
 setTimeout(function() { cargarArchivosPrecargados(); }, 500);
+
+// 🆕 Precarga de aportes para que la pestaña Alertas los tenga disponibles
+setTimeout(function() {
+  if (typeof cargarYRenderAportes === 'function' && !aportesCache.length) {
+    cargarYRenderAportes();
+  }
+}, 1800);
+
 
 // ============================================================
 // 📊 OEE — Integración con datos del dashboard
@@ -2479,6 +2616,24 @@ if (btnRefAportes) btnRefAportes.addEventListener('click', cargarYRenderAportes)
 (function() {
   const contenedor = document.getElementById('contenedor-filas');
   const btnAgregar = document.getElementById('agregar-fila');
+
+// 🆕 Delegación: al cambiar el telar, autocompletar Lote y Estilo
+contenedor.addEventListener('change', function(e) {
+  if (!e.target.matches('input[name="telar[]"]')) return;
+  const fila = e.target.closest('.fila-aporte');
+  if (!fila) return;
+  const info = (typeof obtenerInfoTelarParaAporte === 'function')
+    ? obtenerInfoTelarParaAporte(e.target.value)
+    : { lote:'', estilo:'' };
+  const loteInput   = fila.querySelector('input[name="lote[]"]');
+  const estiloInput = fila.querySelector('input[name="estilo[]"]');
+  if (loteInput && info.lote)     loteInput.value   = info.lote;
+  if (estiloInput && info.estilo) estiloInput.value = info.estilo;
+});
+
+
+
+
 
   function crearFila() {
     const fila = document.createElement('div');
