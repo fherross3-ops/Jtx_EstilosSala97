@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard de Aportes — Tejeduría Jeantex</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<style>
+:root{
+  --bg:#0a0e27; --bg2:#151937; --bg3:#1e2347; --card:rgba(30,35,71,.6);
+  --txt:#e8eaf6; --txt2:#a0a8c8; --accent:#6366f1; --ok:#10b981; --warn:#f59e0b; --bad:#ef4444;
+  --border:rgba(99,102,241,.2); --glass:rgba(255,255,255,.05);
+  --shadow:0 8px 32px rgba(0,0,0,.4);
+}
+[data-theme="light"]{
+  --bg:#f5f7fb; --bg2:#fff; --bg3:#eef1f8; --card:rgba(255,255,255,.9);
+  --txt:#1e293b; --txt2:#64748b; --border:rgba(79,70,229,.2); --glass:rgba(255,255,255,.7);
+  --shadow:0 8px 32px rgba(0,0,0,.1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;padding:20px;transition:background .3s,color .3s}
+.wrap{max-width:1500px;margin:0 auto}
+header{background:var(--card);backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:16px;padding:20px 26px;display:flex;justify-content:space-between;align-items:center;gap:16px;box-shadow:var(--shadow);margin-bottom:20px;flex-wrap:wrap}
+header h1{font-size:20px;color:var(--accent)}
+header p{font-size:12px;color:var(--txt2);margin-top:4px}
+.hdr-actions{display:flex;gap:8px;flex-wrap:wrap}
+.btn{background:linear-gradient(135deg,var(--accent),#8b5cf6);color:#fff;border:0;padding:10px 18px;border-radius:10px;cursor:pointer;font-size:13px;font-weight:600}
+.btn-2{background:var(--bg3);border:1px solid var(--border);color:var(--txt)}
+.card{background:var(--card);backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:20px;box-shadow:var(--shadow)}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px}
+.kpi{background:var(--glass);border:1px solid var(--border);border-radius:12px;padding:16px;position:relative;overflow:hidden}
+.kpi::before{content:'';position:absolute;top:0;left:0;width:100%;height:3px;background:var(--accent)}
+.kpi .lbl{font-size:11px;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px}
+.kpi .val{font-size:26px;font-weight:700;margin-top:6px}
+.kpi .sub{font-size:12px;color:var(--txt2);margin-top:4px}
+.filtros{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;align-items:end}
+.filtros label{font-size:11px;color:var(--txt2);font-weight:600;display:block;margin-bottom:3px}
+.filtros input,.filtros select{width:100%;padding:7px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--txt);font-size:13px}
+.charts-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:18px}
+.chart-box{background:var(--glass);border:1px solid var(--border);border-radius:12px;padding:16px}
+.chart-box h3{font-size:13px;margin-bottom:10px;color:var(--txt)}
+.chart-box .hint{font-size:11px;color:var(--txt2);margin-bottom:8px}
+.chart-canvas{position:relative;height:280px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{background:var(--bg3);color:var(--txt);padding:9px;text-align:left;font-weight:600;position:sticky;top:0;z-index:1}
+td{padding:7px 9px;border-bottom:1px solid var(--border);vertical-align:top}
+tr:hover td{background:var(--glass)}
+.table-wrap{max-height:520px;overflow:auto;border-radius:10px;border:1px solid var(--border)}
+.badge{display:inline-block;padding:2px 9px;border-radius:11px;font-size:11px;font-weight:600;white-space:nowrap}
+.tag-Calidad{background:rgba(59,130,246,.2);color:#60a5fa}
+.tag-Mantenimiento{background:rgba(245,158,11,.2);color:#fbbf24}
+.tag-Producción,.tag-Produccion{background:rgba(16,185,129,.2);color:#34d399}
+.tag-Planificación,.tag-Planificacion{background:rgba(139,92,246,.2);color:#a78bfa}
+.tag-Auditoría,.tag-Auditoria{background:rgba(236,72,153,.2);color:#f472b6}
+.status{margin-bottom:20px;padding:12px 16px;border-radius:10px;font-size:13px;border-left:4px solid var(--accent);background:var(--glass)}
+.status.ok{border-color:var(--ok)}
+.status.err{border-color:var(--bad)}
+.status.info{border-color:#3b82f6}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>📊 Dashboard de Aportes — Tejeduría Jeantex</h1>
+      <p>Análisis · Categorización · Tendencias · Trazabilidad por telar / estilo / clase</p>
+    </div>
+    <div class="hdr-actions">
+      <button class="btn btn-2" id="btnTheme" type="button">🌙</button>
+      <button class="btn" id="btnReload" type="button">🔄 Recargar datos</button>
+    </div>
+  </header>
+
+  <div id="status" class="status info">⏳ Cargando aportes…</div>
+
+  <div class="card" id="kpiCard" style="display:none">
+    <div class="kpi-grid" id="kpiGrid"></div>
+  </div>
+
+  <div class="card" id="filtrosCard" style="display:none">
+    <div class="filtros" id="filtros"></div>
+  </div>
+
+  <div id="chartsWrap" style="display:none">
+    <div class="charts-grid">
+      <div class="chart-box"><h3>🍩 Distribución por clase</h3><div class="hint">Peso relativo de cada tipo de aporte</div><div class="chart-canvas"><canvas id="chClase"></canvas></div></div>
+      <div class="chart-box"><h3>🏭 Top 12 telares con más aportes</h3><div class="hint">Dónde se está prestando más atención</div><div class="chart-canvas"><canvas id="chTelar"></canvas></div></div>
+      <div class="chart-box"><h3>📈 Evolución temporal</h3><div class="hint">Aportes registrados en el tiempo</div><div class="chart-canvas"><canvas id="chEvol"></canvas></div></div>
+      <div class="chart-box"><h3>📑 Distribución por contrato</h3><div class="hint">Cobertura por contrato</div><div class="chart-canvas"><canvas id="chContrato"></canvas></div></div>
+      <div class="chart-box"><h3>🧵 Top 12 estilos con más aportes</h3><div class="hint">Estilos con mayor foco de intervención</div><div class="chart-canvas"><canvas id="chEstilo"></canvas></div></div>
+      <div class="chart-box"><h3>👥 Top 10 aportantes</h3><div class="hint">Quién más documenta</div><div class="chart-canvas"><canvas id="chPersona"></canvas></div></div>
+    </div>
+  </div>
+
+  <div class="card" id="tableCard" style="display:none">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+      <h3 style="font-size:14px">📋 Detalle de aportes <span id="tableCount" style="color:var(--txt2);font-weight:400;font-size:12px"></span></h3>
+      <button class="btn btn-2" id="btnExportCsv" type="button">⬇️ Exportar CSV</button>
+    </div>
+    <div class="table-wrap"><table id="tabla">
+      <thead><tr>
+        <th>Fecha</th><th>Hora</th><th>Telar</th><th>Contrato</th><th>Lote</th>
+        <th>Estilo</th><th>Clase</th><th>Aportante</th><th>Descripción</th>
+      </tr></thead>
+      <tbody></tbody>
+    </table></div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// ⚙️ CONFIGURACIÓN
+// ============================================================
+const CONFIG = {
+  // Ruta del CSV en el repo (si el HTML vive junto al CSV, dejar './aportes.csv')
+  csvUrl: './aportes.csv',
+  // Endpoint alternativo (Netlify) si el CSV falla
+  fallbackUrl: 'https://raw.githubusercontent.com/fherross3-ops/Jtx_EstilosSala97/main/aportes.csv',
+  // Colores de clase
+  claseColors: {
+    'Calidad':       '#3b82f6',
+    'Mantenimiento': '#f59e0b',
+    'Producción':    '#10b981',
+    'Produccion':    '#10b981',
+    'Planificación': '#8b5cf6',
+    'Planificacion': '#8b5cf6',
+    'Auditoría':     '#ec4899',
+    'Auditoria':     '#ec4899'
+  },
+  palette: ['#6366f1','#06b6d4','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#84cc16','#f97316','#14b8a6','#a855f7','#eab308']
+};
+
+// ============================================================
+// 🌓 TEMA
+// ============================================================
+(function initTheme(){
+  const saved = localStorage.getItem('aportes_dash_theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', saved);
+  document.getElementById('btnTheme').textContent = saved === 'dark' ? '☀️' : '🌙';
+})();
+document.getElementById('btnTheme').addEventListener('click', ()=>{
+  const cur = document.documentElement.getAttribute('data-theme');
+  const nxt = cur === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', nxt);
+  localStorage.setItem('aportes_dash_theme', nxt);
+  document.getElementById('btnTheme').textContent = nxt === 'dark' ? '☀️' : '🌙';
+  if (STATE.filtrados) renderCharts(STATE.filtrados);
+});
+
+// ============================================================
+// 🔎 UTILIDADES
+// ============================================================
+const num = v => { const n = Number(String(v ?? '').replace(',', '.')); return isNaN(n) ? 0 : n; };
+const str = v => (v == null ? '' : String(v).trim());
+function parsearFecha(v){
+  if (!v) return null;
+  const s = str(v);
+  let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (m){ const d = new Date(+m[1], +m[2]-1, +m[3]); d.setHours(0,0,0,0); return isNaN(d)?null:d; }
+  m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
+  if (m){ let y = +m[3]; if (y<100) y += 2000; const d = new Date(y, +m[2]-1, +m[1]); d.setHours(0,0,0,0); return isNaN(d)?null:d; }
+  const d = new Date(s); return isNaN(d)?null:d;
+}
+function fmtFecha(d){ if(!d) return ''; const p=n=>String(n).padStart(2,'0'); return p(d.getDate())+'/'+p(d.getMonth()+1)+'/'+d.getFullYear(); }
+function setStatus(msg, type){ const el=document.getElementById('status'); el.className='status '+(type||'info'); el.innerHTML=msg; }
+
+// ============================================================
+// 📥 CARGA DE DATOS
+// ============================================================
+const STATE = { todos: [], filtrados: [], charts: {} };
+
+async function cargarDatos(){
+  setStatus('⏳ Cargando aportes…', 'info');
+  let rows = null;
+
+  // Intento 1: CSV directo
+  try {
+    const res = await fetch(CONFIG.csvUrl + '?t=' + Date.now(), { cache: 'no-store' });
+    if (res.ok){
+      const txt = await res.text();
+      const parsed = Papa.parse(txt, { header: true, skipEmptyLines: true, transformHeader: h => h.trim() });
+      if (parsed.data && parsed.data.length) rows = parsed.data;
+    }
+  } catch(e){ console.warn('CSV directo falló:', e); }
+
+  // Intento 2: fallback GitHub raw
+  if (!rows){
+    try {
+      const res = await fetch(CONFIG.fallbackUrl + '?t=' + Date.now(), { cache: 'no-store' });
+      if (res.ok){
+        const txt = await res.text();
+        const parsed = Papa.parse(txt, { header: true, skipEmptyLines: true, transformHeader: h => h.trim() });
+        if (parsed.data && parsed.data.length) rows = parsed.data;
+      }
+    } catch(e){ console.warn('Fallback falló:', e); }
+  }
+
+  if (!rows || !rows.length){
+    setStatus('❌ No se pudieron cargar los aportes. Verifica la ruta del CSV.', 'err');
+    return;
+  }
+
+  STATE.todos = rows.map(normalizar).filter(r => r.fecha || r.telar);
+  setStatus('✅ ' + STATE.todos.length + ' aportes cargados · ' + resumenFuente(), 'ok');
+  document.getElementById('kpiCard').style.display = '';
+  document.getElementById('filtrosCard').style.display = '';
+  document.getElementById('chartsWrap').style.display = '';
+  document.getElementById('tableCard').style.display = '';
+  construirFiltros();
+  aplicarFiltros();
+}
+
+function normalizar(r){
+  const lc = {};
+  Object.keys(r).forEach(k => lc[String(k).toLowerCase().trim()] = r[k]);
+  const fecha = str(lc.fecha || lc.date);
+  return {
+    fecha: fecha,
+    _fecha: parsearFecha(fecha),
+    hora: str(lc.hora || lc.hour),
+    telar: str(lc.telar).padStart(2, '0'),
+    contrato: str(lc.contrato).toUpperCase(),
+    nombre: str(lc.nombre || lc.aportante || lc.usuario),
+    lote: str(lc.lote),
+    estilo: str(lc.estilo),
+    clase: str(lc.clase || lc.categoria),
+    descripcion: str(lc.descripcion || lc.detalle)
+  };
+}
+function resumenFuente(){
+  return STATE.todos.length + ' filas · ' + contarUnicos('telar') + ' telares · ' +
+         contarUnicos('clase') + ' clases · ' + contarUnicos('nombre') + ' aportantes';
+}
+function contarUnicos(k){ return new Set(STATE.todos.map(r=>r[k]).filter(Boolean)).size; }
+
+// ============================================================
+// 🎛️ FILTROS
+// ============================================================
+function construirFiltros(){
+  const clases = [...new Set(STATE.todos.map(r=>r.clase).filter(Boolean))].sort();
+  const contratos = [...new Set(STATE.todos.map(r=>r.contrato).filter(Boolean))].sort();
+  const telares = [...new Set(STATE.todos.map(r=>r.telar).filter(Boolean))].sort((a,b)=>+a-+b);
+  const estilos = [...new Set(STATE.todos.map(r=>r.estilo).filter(Boolean))].sort();
+
+  const html = [
+    `<div><label>Clase</label><select id="f-clase"><option value="">Todas</option>${clases.map(c=>`<option>${c}</option>`).join('')}</select></div>`,
+    `<div><label>Contrato</label><select id="f-contrato"><option value="">Todos</option>${contratos.map(c=>`<option>${c}</option>`).join('')}</select></div>`,
+    `<div><label>Telar</label><select id="f-telar"><option value="">Todos</option>${telares.map(t=>`<option>${t}</option>`).join('')}</select></div>`,
+    `<div><label>Estilo</label><select id="f-estilo"><option value="">Todos</option>${estilos.map(e=>`<option>${e}</option>`).join('')}</select></div>`,
+    `<div><label>Desde</label><input type="date" id="f-desde"></div>`,
+    `<div><label>Hasta</label><input type="date" id="f-hasta"></div>`,
+    `<div><label>Buscar texto</label><input type="text" id="f-q" placeholder="Ej: rotura trama"></div>`,
+    `<div style="display:flex;gap:6px"><button class="btn" id="f-aplicar" type="button">🔍 Aplicar</button><button class="btn btn-2" id="f-limpiar" type="button">✖ Limpiar</button></div>`
+  ].join('');
+  document.getElementById('filtros').innerHTML = html;
+
+  document.getElementById('f-aplicar').addEventListener('click', aplicarFiltros);
+  document.getElementById('f-limpiar').addEventListener('click', ()=>{
+    ['f-clase','f-contrato','f-telar','f-estilo','f-desde','f-hasta','f-q'].forEach(id=>{
+      const el=document.getElementById(id); if(el) el.value='';
+    });
+    aplicarFiltros();
+  });
+  ['f-clase','f-contrato','f-telar','f-estilo','f-desde','f-hasta'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.addEventListener('change', aplicarFiltros);
+  });
+  let tmr; document.getElementById('f-q').addEventListener('input', ()=>{ clearTimeout(tmr); tmr=setTimeout(aplicarFiltros, 250); });
+}
+
+function aplicarFiltros(){
+  const get = id => (document.getElementById(id)?.value || '').trim();
+  const clase = get('f-clase'), contrato = get('f-contrato'), telar = get('f-telar'),
+        estilo = get('f-estilo'), q = get('f-q').toLowerCase();
+  const desde = get('f-desde') ? new Date(get('f-desde')) : null;
+  const hasta = get('f-hasta') ? new Date(get('f-hasta')) : null;
+  if (desde) desde.setHours(0,0,0,0);
+  if (hasta) hasta.setHours(23,59,59,999);
+
+  STATE.filtrados = STATE.todos.filter(r=>{
+    if (clase && r.clase !== clase) return false;
+    if (contrato && r.contrato !== contrato) return false;
+    if (telar && r.telar !== telar) return false;
+    if (estilo && r.estilo !== estilo) return false;
+    if (desde && (!r._fecha || r._fecha < desde)) return false;
+    if (hasta && (!r._fecha || r._fecha > hasta)) return false;
+    if (q && !(r.descripcion + ' ' + r.lote + ' ' + r.estilo + ' ' + r.nombre).toLowerCase().includes(q)) return false;
+    return true;
+  });
+
+  renderKPIs(STATE.filtrados);
+  renderCharts(STATE.filtrados);
+  renderTabla(STATE.filtrados);
+}
+
+// ============================================================
+// 📊 KPIs
+// ============================================================
+function renderKPIs(lista){
+  const total = lista.length;
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  const ult30 = lista.filter(r=> r._fecha && (hoy - r._fecha)/(86400000) <= 30).length;
+  const telares = new Set(lista.map(r=>r.telar).filter(Boolean)).size;
+  const estilos = new Set(lista.map(r=>r.estilo).filter(Boolean)).size;
+  const clases = {};
+  lista.forEach(r=>{ if(r.clase) clases[r.clase] = (clases[r.clase]||0)+1; });
+  const claseTop = Object.entries(clases).sort((a,b)=>b[1]-a[1])[0];
+  const personas = {};
+  lista.forEach(r=>{ if(r.nombre) personas[r.nombre] = (personas[r.nombre]||0)+1; });
+  const personaTop = Object.entries(personas).sort((a,b)=>b[1]-a[1])[0];
+
+  const kpis = [
+    { lbl:'Total de aportes', val:total, sub:'en la selección actual', color:'var(--accent)' },
+    { lbl:'Últimos 30 días', val:ult30, sub: total ? ((ult30/total)*100).toFixed(0)+'% del total' : '—', color:'#06b6d4' },
+    { lbl:'Telares cubiertos', val:telares, sub:'con al menos 1 aporte', color:'#10b981' },
+    { lbl:'Estilos documentados', val:estilos, sub:'referenciados', color:'#8b5cf6' },
+    { lbl:'Clase dominante', val:claseTop?claseTop[0]:'—', sub:claseTop?claseTop[1]+' aportes':'—', color:'#f59e0b' },
+    { lbl:'Aportante más activo', val:personaTop?personaTop[0]:'—', sub:personaTop?personaTop[1]+' aportes':'—', color:'#ec4899' }
+  ];
+
+  document.getElementById('kpiGrid').innerHTML = kpis.map(k=>
+    `<div class="kpi" style="--accent:${k.color}"><div class="lbl">${k.lbl}</div><div class="val" style="color:${k.color};font-size:${typeof k.val==='string'&&k.val.length>10?'16px':'26px'}">${k.val}</div><div class="sub">${k.sub}</div></div>`
+  ).join('');
+}
+
+// ============================================================
+// 📈 GRÁFICOS
+// ============================================================
+function renderCharts(lista){
+  Object.values(STATE.charts).forEach(c=>{ if(c) c.destroy(); });
+  STATE.charts = {};
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const tc = isDark ? '#e8eaf6' : '#1e293b';
+  const gc = isDark ? 'rgba(255,255,255,.08)' : 'rgba(0,0,0,.08)';
+
+  // 1. Distribución por clase (doughnut)
+  const clases = {};
+  lista.forEach(r=>{ if(r.clase) clases[r.clase] = (clases[r.clase]||0)+1; });
+  const claseArr = Object.entries(clases).sort((a,b)=>b[1]-a[1]);
+  STATE.charts.clase = new Chart(document.getElementById('chClase'), {
+    type:'doughnut',
+    data:{
+      labels: claseArr.map(c=>c[0]),
+      datasets:[{ data: claseArr.map(c=>c[1]),
+        backgroundColor: claseArr.map(c=>CONFIG.claseColors[c[0]] || '#64748b'),
+        borderColor:'transparent', borderWidth:0 }]
+    },
+    options:{ responsive:true, maintainAspectRatio:false, cutout:'62%',
+      plugins:{ legend:{ position:'right', labels:{ color:tc, boxWidth:12, padding:10 } } } }
+  });
+
+  // 2. Top telares
+  const tel = {};
+  lista.forEach(r=>{ if(r.telar) tel[r.telar] = (tel[r.telar]||0)+1; });
+  const topTel = Object.entries(tel).sort((a,b)=>b[1]-a[1]).slice(0,12);
+  STATE.charts.telar = new Chart(document.getElementById('chTelar'), {
+    type:'bar',
+    data:{ labels: topTel.map(t=>'Telar '+t[0]),
+      datasets:[{ data: topTel.map(t=>t[1]), backgroundColor:'#6366f1', borderRadius:5 }] },
+    options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ display:false } },
+      scales:{ x:{ grid:{color:gc}, ticks:{color:tc}, beginAtZero:true },
+               y:{ grid:{color:gc}, ticks:{color:tc} } } }
+  });
+
+  // 3. Evolución temporal
+  const porDia = {};
+  lista.forEach(r=>{ if(r._fecha){ const k = r._fecha.toISOString().slice(0,10); porDia[k]=(porDia[k]||0)+1; } });
+  const diasOrd = Object.keys(porDia).sort();
+  STATE.charts.evol = new Chart(document.getElementById('chEvol'), {
+    type:'line',
+    data:{ labels: diasOrd.map(d=>{const p=d.split('-');return p[2]+'/'+p[1];}),
+      datasets:[{ label:'Aportes', data: diasOrd.map(d=>porDia[d]),
+        borderColor:'#06b6d4', backgroundColor:'rgba(6,182,212,.2)',
+        tension:.3, fill:true, pointRadius:3, pointBackgroundColor:'#06b6d4' }] },
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false} },
+      scales:{ x:{ grid:{color:gc}, ticks:{color:tc, maxRotation:45, minRotation:45, autoSkip:true, maxTicksLimit:14} },
+               y:{ grid:{color:gc}, ticks:{color:tc}, beginAtZero:true } } }
+  });
+
+  // 4. Por contrato
+  const cont = {};
+  lista.forEach(r=>{ if(r.contrato) cont[r.contrato] = (cont[r.contrato]||0)+1; });
+  const contArr = Object.entries(cont).sort((a,b)=>a[0].localeCompare(b[0]));
+  STATE.charts.contrato = new Chart(document.getElementById('chContrato'), {
+    type:'bar',
+    data:{ labels: contArr.map(c=>c[0]),
+      datasets:[{ data: contArr.map(c=>c[1]),
+        backgroundColor: contArr.map((_,i)=>CONFIG.palette[i%CONFIG.palette.length]),
+        borderRadius:5 }] },
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{ x:{grid:{color:gc},ticks:{color:tc}}, y:{grid:{color:gc},ticks:{color:tc},beginAtZero:true} } }
+  });
+
+  // 5. Top estilos
+  const est = {};
+  lista.forEach(r=>{ if(r.estilo) est[r.estilo] = (est[r.estilo]||0)+1; });
+  const topEst = Object.entries(est).sort((a,b)=>b[1]-a[1]).slice(0,12);
+  STATE.charts.estilo = new Chart(document.getElementById('chEstilo'), {
+    type:'bar',
+    data:{ labels: topEst.map(e=>e[0]),
+      datasets:[{ data: topEst.map(e=>e[1]), backgroundColor:'#10b981', borderRadius:5 }] },
+    options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{ x:{grid:{color:gc},ticks:{color:tc},beginAtZero:true},
+               y:{grid:{color:gc},ticks:{color:tc}} } }
+  });
+
+  // 6. Top aportantes
+  const per = {};
+  lista.forEach(r=>{ if(r.nombre) per[r.nombre] = (per[r.nombre]||0)+1; });
+  const topPer = Object.entries(per).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  STATE.charts.persona = new Chart(document.getElementById('chPersona'), {
+    type:'bar',
+    data:{ labels: topPer.map(p=>p[0]),
+      datasets:[{ data: topPer.map(p=>p[1]), backgroundColor:'#ec4899', borderRadius:5 }] },
+    options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{ x:{grid:{color:gc},ticks:{color:tc},beginAtZero:true},
+               y:{grid:{color:gc},ticks:{color:tc}} } }
+  });
+}
+
+// ============================================================
+// 📋 TABLA
+// ============================================================
+function renderTabla(lista){
+  const ordenados = lista.slice().sort((a,b)=>{
+    const da = a._fecha ? a._fecha.getTime() : 0;
+    const db = b._fecha ? b._fecha.getTime() : 0;
+    if (da !== db) return db - da;
+    return (b.hora||'').localeCompare(a.hora||'');
+  });
+  const max = 300;
+  const mostrar = ordenados.slice(0, max);
+  const tbody = document.querySelector('#tabla tbody');
+  tbody.innerHTML = mostrar.map(r=>
+    `<tr>
+      <td>${r.fecha||''}</td>
+      <td>${r.hora||''}</td>
+      <td><strong>${r.telar||''}</strong></td>
+      <td>${r.contrato||''}</td>
+      <td>${r.lote||''}</td>
+      <td>${r.estilo||''}</td>
+      <td><span class="badge tag-${r.clase||''}">${r.clase||''}</span></td>
+      <td>${r.nombre||''}</td>
+      <td>${r.descripcion||''}</td>
+    </tr>`).join('');
+  document.getElementById('tableCount').textContent =
+    '· mostrando ' + mostrar.length + ' de ' + ordenados.length;
+}
+
+// ============================================================
+// ⬇️ EXPORTAR
+// ============================================================
+document.getElementById('btnExportCsv').addEventListener('click', ()=>{
+  const rows = [['Fecha','Hora','Telar','Contrato','Lote','Estilo','Clase','Aportante','Descripción']];
+  STATE.filtrados.forEach(r=>rows.push([r.fecha,r.hora,r.telar,r.contrato,r.lote,r.estilo,r.clase,r.nombre,r.descripcion]));
+  const csv = rows.map(r=>r.map(c=>{
+    const s = String(c ?? '');
+    return /[",\n]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s;
+  }).join(',')).join('\n');
+  const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url;
+  a.download = 'aportes_filtrados_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click(); URL.revokeObjectURL(url);
+});
+
+// ============================================================
+// 🔄 BOTONES
+// ============================================================
+document.getElementById('btnReload').addEventListener('click', ()=>{ cargarDatos(); });
+
+// ============================================================
+// 🚀 INIT
+// ============================================================
+cargarDatos();
+</script>
+</body>
+</html>
