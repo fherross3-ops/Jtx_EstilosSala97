@@ -212,20 +212,53 @@ async function cargarDatos(){
 }
 
 function normalizar(r){
+  // Alias aceptados por campo (nombres alternativos de columna en el CSV)
+const ALIASES = {
+  fecha:       ['fecha', 'date', 'dia'],
+  hora:        ['hora', 'time', 'hour'],
+  telar:       ['telar', 'maquina', 'machine'],
+  contrato:    ['contrato', 'contract'],
+  nombre:      ['nombre', 'aportante', 'usuario', 'user', 'autor'],
+  lote:        ['lote', 'lot', 'batch'],
+  estilo:      ['estilo', 'style', 'referencia', 'ref'],
+  clase:       ['clase', 'categoria', 'category', 'tipo'],
+  descripcion: ['descripcion', 'detalle', 'detail', 'comentario', 'observacion', 'observaciones']
+};
+
+function normalizarEncabezado(k) {
+  return String(k)
+    .replace(/^\uFEFF/, '')                // BOM
+    .toLowerCase()
+    .trim()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // sin acentos
+    .replace(/\s+/g, '_');
+}
+
+function extraerCampo(lc, campo) {
+  const alias = ALIASES[campo] || [campo];
+  for (const a of alias) if (lc[a] !== undefined && lc[a] !== null) return lc[a];
+  return '';
+}
+
+function normalizar(r){
   const lc = {};
-  Object.keys(r).forEach(k => lc[String(k).toLowerCase().trim()] = r[k]);
-  const fecha = str(lc.fecha || lc.date);
+  Object.keys(r).forEach(k => { lc[normalizarEncabezado(k)] = r[k]; });
+
+  const fecha = str(extraerCampo(lc, 'fecha'));
+  const telarRaw = str(extraerCampo(lc, 'telar'));
+  const telar = /^\d+$/.test(telarRaw) ? telarRaw.padStart(2, '0') : telarRaw;
+
   return {
-    fecha: fecha,
-    _fecha: parsearFecha(fecha),
-    hora: str(lc.hora || lc.hour),
-    telar: str(lc.telar).padStart(2, '0'),
-    contrato: str(lc.contrato).toUpperCase(),
-    nombre: str(lc.nombre || lc.aportante || lc.usuario),
-    lote: str(lc.lote),
-    estilo: str(lc.estilo),
-    clase: str(lc.clase || lc.categoria),
-    descripcion: str(lc.descripcion || lc.detalle)
+    fecha:       fecha,
+    _fecha:      parsearFecha(fecha),
+    hora:        str(extraerCampo(lc, 'hora')),
+    telar:       telar,
+    contrato:    str(extraerCampo(lc, 'contrato')).toUpperCase(),
+    nombre:      str(extraerCampo(lc, 'nombre')),
+    lote:        str(extraerCampo(lc, 'lote')),
+    estilo:      str(extraerCampo(lc, 'estilo')),
+    clase:       str(extraerCampo(lc, 'clase')),
+    descripcion: str(extraerCampo(lc, 'descripcion'))
   };
 }
 function resumenFuente(){
