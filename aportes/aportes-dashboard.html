@@ -53,7 +53,7 @@ tr:hover td{background:var(--glass)}
 .tag-Producción,.tag-Produccion{background:rgba(16,185,129,.2);color:#34d399}
 .tag-Planificación,.tag-Planificacion{background:rgba(139,92,246,.2);color:#a78bfa}
 .tag-Auditoría,.tag-Auditoria{background:rgba(236,72,153,.2);color:#f472b6}
-.status{margin-bottom:20px;padding:12px 16px;border-radius:10px;font-size:13px;border-left:4px solid var(--accent);background:var(--glass)}
+.status{margin-bottom:20px;padding:12px 16px;border-radius:10px;font-size:13px;border-left:4px solid var(--accent);background:var(--glass);max-height:280px;overflow-y:auto}
 .status.ok{border-color:var(--ok)}
 .status.err{border-color:var(--bad)}
 .status.info{border-color:#3b82f6}
@@ -109,15 +109,9 @@ tr:hover td{background:var(--glass)}
 </div>
 
 <script>
-// ============================================================
-// ⚙️ CONFIGURACIÓN
-// ============================================================
 const CONFIG = {
-  // El CSV se llama historial.csv y está en la misma carpeta que este HTML
   csvUrl: './historial.csv',
-  // Fallback: mismo archivo desde GitHub raw
   fallbackUrl: 'https://raw.githubusercontent.com/fherross3-ops/jtx_estilos97/main/aportes/historial.csv',
-  // Colores de clase
   claseColors: {
     'Calidad':       '#3b82f6',
     'Mantenimiento': '#f59e0b',
@@ -131,15 +125,13 @@ const CONFIG = {
   palette: ['#6366f1','#06b6d4','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#84cc16','#f97316','#14b8a6','#a855f7','#eab308']
 };
 
-// ============================================================
-// 🌓 TEMA
-// ============================================================
 (function initTheme(){
   const saved = localStorage.getItem('aportes_dash_theme') || 'dark';
   document.documentElement.setAttribute('data-theme', saved);
   document.getElementById('btnTheme').textContent = saved === 'dark' ? '☀️' : '🌙';
 })();
-document.getElementById('btnTheme').addEventListener('click', ()=>{
+
+document.getElementById('btnTheme').addEventListener('click', function(){
   const cur = document.documentElement.getAttribute('data-theme');
   const nxt = cur === 'dark' ? 'light' : 'dark';
   document.documentElement.setAttribute('data-theme', nxt);
@@ -148,11 +140,8 @@ document.getElementById('btnTheme').addEventListener('click', ()=>{
   if (STATE.filtrados) renderCharts(STATE.filtrados);
 });
 
-// ============================================================
-// 🔎 UTILIDADES
-// ============================================================
-const num = v => { const n = Number(String(v ?? '').replace(',', '.')); return isNaN(n) ? 0 : n; };
 const str = v => (v == null ? '' : String(v).trim());
+
 function parsearFecha(v){
   if (!v) return null;
   const s = str(v);
@@ -162,19 +151,19 @@ function parsearFecha(v){
   if (m){ let y = +m[3]; if (y<100) y += 2000; const d = new Date(y, +m[2]-1, +m[1]); d.setHours(0,0,0,0); return isNaN(d)?null:d; }
   const d = new Date(s); return isNaN(d)?null:d;
 }
-function fmtFecha(d){ if(!d) return ''; const p=n=>String(n).padStart(2,'0'); return p(d.getDate())+'/'+p(d.getMonth()+1)+'/'+d.getFullYear(); }
-function setStatus(msg, type){ const el=document.getElementById('status'); el.className='status '+(type||'info'); el.innerHTML=msg; }
 
-// ============================================================
-// 📥 CARGA DE DATOS
-// ============================================================
+function setStatus(msg, type){
+  const el = document.getElementById('status');
+  el.className = 'status ' + (type || 'info');
+  el.innerHTML = msg;
+}
+
 const STATE = { todos: [], filtrados: [], charts: {} };
 
 async function cargarDatos(){
   setStatus('⏳ Cargando aportes…', 'info');
   let rows = null;
 
-  // Intento 1: CSV directo
   try {
     const res = await fetch(CONFIG.csvUrl + '?t=' + Date.now(), { cache: 'no-store' });
     if (res.ok){
@@ -184,7 +173,6 @@ async function cargarDatos(){
     }
   } catch(e){ console.warn('CSV directo falló:', e); }
 
-  // Intento 2: fallback GitHub raw
   if (!rows){
     try {
       const res = await fetch(CONFIG.fallbackUrl + '?t=' + Date.now(), { cache: 'no-store' });
@@ -202,7 +190,7 @@ async function cargarDatos(){
   }
 
   STATE.todos = rows.map(normalizar).filter(r => r.fecha || r.telar);
-  setStatus('✅ ' + STATE.todos.length + ' aportes cargados · ' + resumenFuente(), 'ok');
+  setStatus('✅ ' + STATE.todos.length + ' aportes cargados', 'ok');
   document.getElementById('kpiCard').style.display = '';
   document.getElementById('filtrosCard').style.display = '';
   document.getElementById('chartsWrap').style.display = '';
@@ -212,64 +200,24 @@ async function cargarDatos(){
 }
 
 function normalizar(r){
-  // Alias aceptados por campo (nombres alternativos de columna en el CSV)
-const ALIASES = {
-  fecha:       ['fecha', 'date', 'dia'],
-  hora:        ['hora', 'time', 'hour'],
-  telar:       ['telar', 'maquina', 'machine'],
-  contrato:    ['contrato', 'contract'],
-  nombre:      ['nombre', 'aportante', 'usuario', 'user', 'autor'],
-  lote:        ['lote', 'lot', 'batch'],
-  estilo:      ['estilo', 'style', 'referencia', 'ref'],
-  clase:       ['clase', 'categoria', 'category', 'tipo'],
-  descripcion: ['descripcion', 'detalle', 'detail', 'comentario', 'observacion', 'observaciones']
-};
-
-function normalizarEncabezado(k) {
-  return String(k)
-    .replace(/^\uFEFF/, '')                // BOM
-    .toLowerCase()
-    .trim()
-    .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // sin acentos
-    .replace(/\s+/g, '_');
-}
-
-function extraerCampo(lc, campo) {
-  const alias = ALIASES[campo] || [campo];
-  for (const a of alias) if (lc[a] !== undefined && lc[a] !== null) return lc[a];
-  return '';
-}
-
-function normalizar(r){
   const lc = {};
-  Object.keys(r).forEach(k => { lc[normalizarEncabezado(k)] = r[k]; });
-
-  const fecha = str(extraerCampo(lc, 'fecha'));
-  const telarRaw = str(extraerCampo(lc, 'telar'));
-  const telar = /^\d+$/.test(telarRaw) ? telarRaw.padStart(2, '0') : telarRaw;
-
+  Object.keys(r).forEach(k => lc[String(k).toLowerCase().trim()] = r[k]);
+  const fecha = str(lc.fecha || lc.date);
+  const telarRaw = str(lc.telar);
   return {
-    fecha:       fecha,
-    _fecha:      parsearFecha(fecha),
-    hora:        str(extraerCampo(lc, 'hora')),
-    telar:       telar,
-    contrato:    str(extraerCampo(lc, 'contrato')).toUpperCase(),
-    nombre:      str(extraerCampo(lc, 'nombre')),
-    lote:        str(extraerCampo(lc, 'lote')),
-    estilo:      str(extraerCampo(lc, 'estilo')),
-    clase:       str(extraerCampo(lc, 'clase')),
-    descripcion: str(extraerCampo(lc, 'descripcion'))
+    fecha: fecha,
+    _fecha: parsearFecha(fecha),
+    hora: str(lc.hora || lc.hour),
+    telar: /^\d+$/.test(telarRaw) ? telarRaw.padStart(2, '0') : telarRaw,
+    contrato: str(lc.contrato).toUpperCase(),
+    nombre: str(lc.nombre || lc.aportante || lc.usuario),
+    lote: str(lc.lote),
+    estilo: str(lc.estilo),
+    clase: str(lc.clase || lc.categoria),
+    descripcion: str(lc.descripcion || lc.detalle)
   };
 }
-function resumenFuente(){
-  return STATE.todos.length + ' filas · ' + contarUnicos('telar') + ' telares · ' +
-         contarUnicos('clase') + ' clases · ' + contarUnicos('nombre') + ' aportantes';
-}
-function contarUnicos(k){ return new Set(STATE.todos.map(r=>r[k]).filter(Boolean)).size; }
 
-// ============================================================
-// 🎛️ FILTROS
-// ============================================================
 function construirFiltros(){
   const clases = [...new Set(STATE.todos.map(r=>r.clase).filter(Boolean))].sort();
   const contratos = [...new Set(STATE.todos.map(r=>r.contrato).filter(Boolean))].sort();
@@ -277,28 +225,31 @@ function construirFiltros(){
   const estilos = [...new Set(STATE.todos.map(r=>r.estilo).filter(Boolean))].sort();
 
   const html = [
-    `<div><label>Clase</label><select id="f-clase"><option value="">Todas</option>${clases.map(c=>`<option>${c}</option>`).join('')}</select></div>`,
-    `<div><label>Contrato</label><select id="f-contrato"><option value="">Todos</option>${contratos.map(c=>`<option>${c}</option>`).join('')}</select></div>`,
-    `<div><label>Telar</label><select id="f-telar"><option value="">Todos</option>${telares.map(t=>`<option>${t}</option>`).join('')}</select></div>`,
-    `<div><label>Estilo</label><select id="f-estilo"><option value="">Todos</option>${estilos.map(e=>`<option>${e}</option>`).join('')}</select></div>`,
-    `<div><label>Desde</label><input type="date" id="f-desde"></div>`,
-    `<div><label>Hasta</label><input type="date" id="f-hasta"></div>`,
-    `<div><label>Buscar texto</label><input type="text" id="f-q" placeholder="Ej: rotura trama"></div>`,
-    `<div style="display:flex;gap:6px"><button class="btn" id="f-aplicar" type="button">🔍 Aplicar</button><button class="btn btn-2" id="f-limpiar" type="button">✖ Limpiar</button></div>`
+    '<div><label>Clase</label><select id="f-clase"><option value="">Todas</option>' + clases.map(c=>'<option>'+c+'</option>').join('') + '</select></div>',
+    '<div><label>Contrato</label><select id="f-contrato"><option value="">Todos</option>' + contratos.map(c=>'<option>'+c+'</option>').join('') + '</select></div>',
+    '<div><label>Telar</label><select id="f-telar"><option value="">Todos</option>' + telares.map(t=>'<option>'+t+'</option>').join('') + '</select></div>',
+    '<div><label>Estilo</label><select id="f-estilo"><option value="">Todos</option>' + estilos.map(e=>'<option>'+e+'</option>').join('') + '</select></div>',
+    '<div><label>Desde</label><input type="date" id="f-desde"></div>',
+    '<div><label>Hasta</label><input type="date" id="f-hasta"></div>',
+    '<div><label>Buscar texto</label><input type="text" id="f-q" placeholder="Ej: rotura trama"></div>',
+    '<div style="display:flex;gap:6px"><button class="btn" id="f-aplicar" type="button">🔍 Aplicar</button><button class="btn btn-2" id="f-limpiar" type="button">✖ Limpiar</button></div>'
   ].join('');
   document.getElementById('filtros').innerHTML = html;
 
   document.getElementById('f-aplicar').addEventListener('click', aplicarFiltros);
-  document.getElementById('f-limpiar').addEventListener('click', ()=>{
-    ['f-clase','f-contrato','f-telar','f-estilo','f-desde','f-hasta','f-q'].forEach(id=>{
-      const el=document.getElementById(id); if(el) el.value='';
+  document.getElementById('f-limpiar').addEventListener('click', function(){
+    ['f-clase','f-contrato','f-telar','f-estilo','f-desde','f-hasta','f-q'].forEach(function(id){
+      const el = document.getElementById(id); if (el) el.value = '';
     });
     aplicarFiltros();
   });
-  ['f-clase','f-contrato','f-telar','f-estilo','f-desde','f-hasta'].forEach(id=>{
-    const el=document.getElementById(id); if(el) el.addEventListener('change', aplicarFiltros);
+  ['f-clase','f-contrato','f-telar','f-estilo','f-desde','f-hasta'].forEach(function(id){
+    const el = document.getElementById(id); if (el) el.addEventListener('change', aplicarFiltros);
   });
-  let tmr; document.getElementById('f-q').addEventListener('input', ()=>{ clearTimeout(tmr); tmr=setTimeout(aplicarFiltros, 250); });
+  let tmr;
+  document.getElementById('f-q').addEventListener('input', function(){
+    clearTimeout(tmr); tmr = setTimeout(aplicarFiltros, 250);
+  });
 }
 
 function aplicarFiltros(){
@@ -310,7 +261,7 @@ function aplicarFiltros(){
   if (desde) desde.setHours(0,0,0,0);
   if (hasta) hasta.setHours(23,59,59,999);
 
-  STATE.filtrados = STATE.todos.filter(r=>{
+  STATE.filtrados = STATE.todos.filter(function(r){
     if (clase && r.clase !== clase) return false;
     if (contrato && r.contrato !== contrato) return false;
     if (telar && r.telar !== telar) return false;
@@ -326,20 +277,17 @@ function aplicarFiltros(){
   renderTabla(STATE.filtrados);
 }
 
-// ============================================================
-// 📊 KPIs
-// ============================================================
 function renderKPIs(lista){
   const total = lista.length;
   const hoy = new Date(); hoy.setHours(0,0,0,0);
-  const ult30 = lista.filter(r=> r._fecha && (hoy - r._fecha)/(86400000) <= 30).length;
+  const ult30 = lista.filter(r => r._fecha && (hoy - r._fecha)/86400000 <= 30).length;
   const telares = new Set(lista.map(r=>r.telar).filter(Boolean)).size;
   const estilos = new Set(lista.map(r=>r.estilo).filter(Boolean)).size;
   const clases = {};
-  lista.forEach(r=>{ if(r.clase) clases[r.clase] = (clases[r.clase]||0)+1; });
+  lista.forEach(r => { if (r.clase) clases[r.clase] = (clases[r.clase]||0)+1; });
   const claseTop = Object.entries(clases).sort((a,b)=>b[1]-a[1])[0];
   const personas = {};
-  lista.forEach(r=>{ if(r.nombre) personas[r.nombre] = (personas[r.nombre]||0)+1; });
+  lista.forEach(r => { if (r.nombre) personas[r.nombre] = (personas[r.nombre]||0)+1; });
   const personaTop = Object.entries(personas).sort((a,b)=>b[1]-a[1])[0];
 
   const kpis = [
@@ -351,24 +299,24 @@ function renderKPIs(lista){
     { lbl:'Aportante más activo', val:personaTop?personaTop[0]:'—', sub:personaTop?personaTop[1]+' aportes':'—', color:'#ec4899' }
   ];
 
-  document.getElementById('kpiGrid').innerHTML = kpis.map(k=>
-    `<div class="kpi" style="--accent:${k.color}"><div class="lbl">${k.lbl}</div><div class="val" style="color:${k.color};font-size:${typeof k.val==='string'&&k.val.length>10?'16px':'26px'}">${k.val}</div><div class="sub">${k.sub}</div></div>`
-  ).join('');
+  document.getElementById('kpiGrid').innerHTML = kpis.map(function(k){
+    return '<div class="kpi" style="--accent:'+k.color+'">' +
+      '<div class="lbl">'+k.lbl+'</div>' +
+      '<div class="val" style="color:'+k.color+';font-size:'+(typeof k.val==='string'&&k.val.length>10?'16px':'26px')+'">'+k.val+'</div>' +
+      '<div class="sub">'+k.sub+'</div>' +
+    '</div>';
+  }).join('');
 }
 
-// ============================================================
-// 📈 GRÁFICOS
-// ============================================================
 function renderCharts(lista){
-  Object.values(STATE.charts).forEach(c=>{ if(c) c.destroy(); });
+  Object.values(STATE.charts).forEach(function(c){ if(c) c.destroy(); });
   STATE.charts = {};
   const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
   const tc = isDark ? '#e8eaf6' : '#1e293b';
   const gc = isDark ? 'rgba(255,255,255,.08)' : 'rgba(0,0,0,.08)';
 
-  // 1. Distribución por clase (doughnut)
   const clases = {};
-  lista.forEach(r=>{ if(r.clase) clases[r.clase] = (clases[r.clase]||0)+1; });
+  lista.forEach(r => { if (r.clase) clases[r.clase] = (clases[r.clase]||0)+1; });
   const claseArr = Object.entries(clases).sort((a,b)=>b[1]-a[1]);
   STATE.charts.clase = new Chart(document.getElementById('chClase'), {
     type:'doughnut',
@@ -382,9 +330,8 @@ function renderCharts(lista){
       plugins:{ legend:{ position:'right', labels:{ color:tc, boxWidth:12, padding:10 } } } }
   });
 
-  // 2. Top telares
   const tel = {};
-  lista.forEach(r=>{ if(r.telar) tel[r.telar] = (tel[r.telar]||0)+1; });
+  lista.forEach(r => { if (r.telar) tel[r.telar] = (tel[r.telar]||0)+1; });
   const topTel = Object.entries(tel).sort((a,b)=>b[1]-a[1]).slice(0,12);
   STATE.charts.telar = new Chart(document.getElementById('chTelar'), {
     type:'bar',
@@ -396,9 +343,8 @@ function renderCharts(lista){
                y:{ grid:{color:gc}, ticks:{color:tc} } } }
   });
 
-  // 3. Evolución temporal
   const porDia = {};
-  lista.forEach(r=>{ if(r._fecha){ const k = r._fecha.toISOString().slice(0,10); porDia[k]=(porDia[k]||0)+1; } });
+  lista.forEach(r => { if (r._fecha){ const k = r._fecha.toISOString().slice(0,10); porDia[k] = (porDia[k]||0)+1; } });
   const diasOrd = Object.keys(porDia).sort();
   STATE.charts.evol = new Chart(document.getElementById('chEvol'), {
     type:'line',
@@ -412,9 +358,8 @@ function renderCharts(lista){
                y:{ grid:{color:gc}, ticks:{color:tc}, beginAtZero:true } } }
   });
 
-  // 4. Por contrato
   const cont = {};
-  lista.forEach(r=>{ if(r.contrato) cont[r.contrato] = (cont[r.contrato]||0)+1; });
+  lista.forEach(r => { if (r.contrato) cont[r.contrato] = (cont[r.contrato]||0)+1; });
   const contArr = Object.entries(cont).sort((a,b)=>a[0].localeCompare(b[0]));
   STATE.charts.contrato = new Chart(document.getElementById('chContrato'), {
     type:'bar',
@@ -427,9 +372,8 @@ function renderCharts(lista){
       scales:{ x:{grid:{color:gc},ticks:{color:tc}}, y:{grid:{color:gc},ticks:{color:tc},beginAtZero:true} } }
   });
 
-  // 5. Top estilos
   const est = {};
-  lista.forEach(r=>{ if(r.estilo) est[r.estilo] = (est[r.estilo]||0)+1; });
+  lista.forEach(r => { if (r.estilo) est[r.estilo] = (est[r.estilo]||0)+1; });
   const topEst = Object.entries(est).sort((a,b)=>b[1]-a[1]).slice(0,12);
   STATE.charts.estilo = new Chart(document.getElementById('chEstilo'), {
     type:'bar',
@@ -441,9 +385,8 @@ function renderCharts(lista){
                y:{grid:{color:gc},ticks:{color:tc}} } }
   });
 
-  // 6. Top aportantes
   const per = {};
-  lista.forEach(r=>{ if(r.nombre) per[r.nombre] = (per[r.nombre]||0)+1; });
+  lista.forEach(r => { if (r.nombre) per[r.nombre] = (per[r.nombre]||0)+1; });
   const topPer = Object.entries(per).sort((a,b)=>b[1]-a[1]).slice(0,10);
   STATE.charts.persona = new Chart(document.getElementById('chPersona'), {
     type:'bar',
@@ -456,11 +399,8 @@ function renderCharts(lista){
   });
 }
 
-// ============================================================
-// 📋 TABLA
-// ============================================================
 function renderTabla(lista){
-  const ordenados = lista.slice().sort((a,b)=>{
+  const ordenados = lista.slice().sort(function(a,b){
     const da = a._fecha ? a._fecha.getTime() : 0;
     const db = b._fecha ? b._fecha.getTime() : 0;
     if (da !== db) return db - da;
@@ -469,32 +409,33 @@ function renderTabla(lista){
   const max = 300;
   const mostrar = ordenados.slice(0, max);
   const tbody = document.querySelector('#tabla tbody');
-  tbody.innerHTML = mostrar.map(r=>
-    `<tr>
-      <td>${r.fecha||''}</td>
-      <td>${r.hora||''}</td>
-      <td><strong>${r.telar||''}</strong></td>
-      <td>${r.contrato||''}</td>
-      <td>${r.lote||''}</td>
-      <td>${r.estilo||''}</td>
-      <td><span class="badge tag-${r.clase||''}">${r.clase||''}</span></td>
-      <td>${r.nombre||''}</td>
-      <td>${r.descripcion||''}</td>
-    </tr>`).join('');
-  document.getElementById('tableCount').textContent =
-    '· mostrando ' + mostrar.length + ' de ' + ordenados.length;
+  tbody.innerHTML = mostrar.map(function(r){
+    return '<tr>' +
+      '<td>'+(r.fecha||'')+'</td>' +
+      '<td>'+(r.hora||'')+'</td>' +
+      '<td><strong>'+(r.telar||'')+'</strong></td>' +
+      '<td>'+(r.contrato||'')+'</td>' +
+      '<td>'+(r.lote||'')+'</td>' +
+      '<td>'+(r.estilo||'')+'</td>' +
+      '<td><span class="badge tag-'+(r.clase||'')+'">'+(r.clase||'')+'</span></td>' +
+      '<td>'+(r.nombre||'')+'</td>' +
+      '<td>'+(r.descripcion||'')+'</td>' +
+    '</tr>';
+  }).join('');
+  document.getElementById('tableCount').textContent = '· mostrando ' + mostrar.length + ' de ' + ordenados.length;
 }
 
-// ============================================================
-// ⬇️ EXPORTAR
-// ============================================================
-document.getElementById('btnExportCsv').addEventListener('click', ()=>{
+document.getElementById('btnExportCsv').addEventListener('click', function(){
   const rows = [['Fecha','Hora','Telar','Contrato','Lote','Estilo','Clase','Aportante','Descripción']];
-  STATE.filtrados.forEach(r=>rows.push([r.fecha,r.hora,r.telar,r.contrato,r.lote,r.estilo,r.clase,r.nombre,r.descripcion]));
-  const csv = rows.map(r=>r.map(c=>{
-    const s = String(c ?? '');
-    return /[",\n]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s;
-  }).join(',')).join('\n');
+  STATE.filtrados.forEach(function(r){
+    rows.push([r.fecha,r.hora,r.telar,r.contrato,r.lote,r.estilo,r.clase,r.nombre,r.descripcion]);
+  });
+  const csv = rows.map(function(r){
+    return r.map(function(c){
+      const s = String(c == null ? '' : c);
+      return /[",\n]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s;
+    }).join(',');
+  }).join('\n');
   const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a'); a.href = url;
@@ -502,14 +443,8 @@ document.getElementById('btnExportCsv').addEventListener('click', ()=>{
   a.click(); URL.revokeObjectURL(url);
 });
 
-// ============================================================
-// 🔄 BOTONES
-// ============================================================
-document.getElementById('btnReload').addEventListener('click', ()=>{ cargarDatos(); });
+document.getElementById('btnReload').addEventListener('click', function(){ cargarDatos(); });
 
-// ============================================================
-// 🚀 INIT
-// ============================================================
 cargarDatos();
 </script>
 </body>
