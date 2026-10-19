@@ -113,10 +113,10 @@ tr:hover td{background:var(--glass)}
 // ⚙️ CONFIGURACIÓN
 // ============================================================
 const CONFIG = {
-  // Ruta del CSV en el repo (si el HTML vive junto al CSV, dejar './historial.csv')
+  // El CSV se llama historial.csv y está en la misma carpeta que este HTML
   csvUrl: './historial.csv',
-  // Endpoint alternativo (Netlify) si el CSV falla
-  fallbackUrl: 'https://raw.githubusercontent.com/fherross3-ops/Jtx_EstilosSala97/main/historial.csv',
+  // Fallback: mismo archivo desde GitHub raw
+  fallbackUrl: 'https://raw.githubusercontent.com/fherross3-ops/jtx_estilos97/main/aportes/historial.csv',
   // Colores de clase
   claseColors: {
     'Calidad':       '#3b82f6',
