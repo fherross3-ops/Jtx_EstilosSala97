@@ -34,6 +34,7 @@ header p{font-size:12px;color:var(--txt2);margin-top:4px}
 .kpi .lbl{font-size:11px;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px}
 .kpi .val{font-size:26px;font-weight:700;margin-top:6px}
 .kpi .sub{font-size:12px;color:var(--txt2);margin-top:4px}
+.kpi.kpi-hidden{display:none !important}
 .filtros{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;align-items:end}
 .filtros label{font-size:11px;color:var(--txt2);font-weight:600;display:block;margin-bottom:3px}
 .filtros input,.filtros select{width:100%;padding:7px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--txt);font-size:13px}
@@ -296,11 +297,11 @@ function renderKPIs(lista){
     { lbl:'Telares cubiertos', val:telares, sub:'con al menos 1 aporte', color:'#10b981' },
     { lbl:'Estilos documentados', val:estilos, sub:'referenciados', color:'#8b5cf6' },
     { lbl:'Clase dominante', val:claseTop?claseTop[0]:'—', sub:claseTop?claseTop[1]+' aportes':'—', color:'#f59e0b' },
-    { lbl:'Aportante más activo', val:personaTop?personaTop[0]:'—', sub:personaTop?personaTop[1]+' aportes':'—', color:'#ec4899' }
+    { lbl:'Aportante más activo', val:personaTop?personaTop[0]:'—', sub:personaTop?personaTop[1]+' aportes':'—', color:'#ec4899', hidden:true }
   ];
 
   document.getElementById('kpiGrid').innerHTML = kpis.map(function(k){
-    return '<div class="kpi" style="--accent:'+k.color+'">' +
+    return '<div class="kpi ' + (k.hidden ? 'kpi-hidden' : '') + '" style="--accent:'+k.color+'">' +
       '<div class="lbl">'+k.lbl+'</div>' +
       '<div class="val" style="color:'+k.color+';font-size:'+(typeof k.val==='string'&&k.val.length>10?'16px':'26px')+'">'+k.val+'</div>' +
       '<div class="sub">'+k.sub+'</div>' +
