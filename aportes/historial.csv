@@ -56,3 +56,7 @@ fecha,hora,nombre,telar,contrato,lote,estilo,clase,descripcion
 2026-10-27,15:36,Edgar Hernandez,42,C03,100065,BULLDENIM  L,Producción,alto indice de paro por presión de aceite
 2026-10-27,16:00,Edgar Hernandez,44,C04,202220,ARANDANO DARK,Producción,trama 8 reenconada
 2026-10-28,10:54,Edgar Hernandez,48,C03,302219,FARINA RING,Producción,"Prado por Calidad, hilos pisados extremo derecho"
+2026-10-28,14:02,Tomas Urbina,44,C04,202220,ARANDANO DARK,Mantenimiento,Altos paro de trama
+2026-10-28,14:02,Tomas Urbina,42,C03,100065,BULLDENIM  L,Mantenimiento,PFT 
+2026-10-28,14:02,Tomas Urbina,33,C03,301215,ARANDANO NEGRO,Mantenimiento,Circuito Abierto
+2026-10-28,14:02,Tomas Urbina,55,C04,302219,FARINA RING,Mantenimiento,Base del sistema de nivelaciòn
