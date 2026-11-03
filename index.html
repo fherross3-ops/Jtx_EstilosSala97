@@ -2573,9 +2573,22 @@ function renderAportes() {
   html += '<div class="table-wrapper"><table><thead><tr>' +
     cols.map(c => '<th>' + c + '</th>').join('') +
     '</tr></thead><tbody>';
-  lista.slice().reverse().forEach(a => {
+ 
+
+
+// 🔷 Ordenar por fecha de ocurrencia descendente, y por hora descendente
+lista.slice()
+  .sort(function(a, b) {
+    if (a.fecha !== b.fecha) return (a.fecha < b.fecha) ? 1 : -1;
+    return (b.hora || '').localeCompare(a.hora || '');
+  })
+  .forEach(function(a) {
     html += '<tr>' + cols.map(c => '<td>' + (a[c] || '') + '</td>').join('') + '</tr>';
   });
+
+
+
+
   html += '</tbody></table></div>';
   cont.innerHTML = html;
 }
@@ -2600,19 +2613,31 @@ if (btnRefAportes) btnRefAportes.addEventListener('click', cargarYRenderAportes)
     <h2 style="color: #4a3520; font-size: 26px; margin: 0; letter-spacing: 1px;">🏺 Aportes de Valor Agregado</h2>
     <p style="color: #7a654f; font-size: 14px; margin: 5px 0 0 0;">Comparte tu conocimiento sobre telares, lotes, estilos y clases</p>
     <p style="color: #8b6f4c; font-size: 13px; font-weight: 500; margin: 3px 0 0 0;">💡 Puedes agregar múltiples líneas de aportes en un solo envío</p>
-  </div>
+<div>
+  <label for="nombre-aportante" style="display: block; font-weight: 600; color: #4a3520; margin-bottom: 4px; font-size: 14px;">
+    👤 Identificación <span style="color: #a0522d;">*</span>
+  </label>
+  <input type="text" id="nombre-aportante" name="nombre-aportante"
+         placeholder="Ej: Nombre Apellido" required
+         style="width: 100%; padding: 10px 12px; border: 2px solid #d4c8b8; border-radius: 8px; font-size: 15px; background: white; box-sizing: border-box;" />
+</div>
 
-  <form id="form-aportes" style="display: flex; flex-direction: column; gap: 15px;">
-    <div>
-      <label for="nombre-aportante" style="display: block; font-weight: 600; color: #4a3520; margin-bottom: 4px; font-size: 14px;">
-        👤 Identificación <span style="color: #a0522d;">*</span>
-      </label>
-      <input type="text" id="nombre-aportante" name="nombre-aportante"
-             placeholder="Ej: Nombre Apellido" required
-             style="width: 100%; padding: 10px 12px; border: 2px solid #d4c8b8; border-radius: 8px; font-size: 15px; background: white; box-sizing: border-box;" />
-    </div>
+<!-- 🔷 NUEVO: fecha de ocurrencia -->
+<div>
+  <label for="fecha-ocurrencia" style="display: block; font-weight: 600; color: #4a3520; margin-bottom: 4px; font-size: 14px;">
+    📅 Fecha de ocurrencia <span style="color: #a0522d;">*</span>
+  </label>
+  <input type="date" id="fecha-ocurrencia" name="fecha-ocurrencia" required
+         style="width: 100%; padding: 10px 12px; border: 2px solid #d4c8b8; border-radius: 8px; font-size: 15px; background: white; box-sizing: border-box;" />
+  <p style="font-size: 12px; color: #7a654f; margin: 4px 0 0 0;">
+    Día en que ocurrió el evento (no el día en que lo registras)
+  </p>
+</div>
+<!-- 🔷 FIN NUEVO -->
 
-    <div style="background: white; border-radius: 10px; padding: 20px; border: 2px solid #d4c8b8; overflow-x: auto;">
+<div style="background: white; border-radius: 10px; padding: 20px; border: 2px solid #d4c8b8; overflow-x: auto;">
+
+
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
         <h3 style="color: #4a3520; font-size: 16px; margin: 0;">📋 Líneas de Aportes</h3>
         <button type="button" id="agregar-fila"
@@ -2683,19 +2708,17 @@ if (btnRefAportes) btnRefAportes.addEventListener('click', cargarYRenderAportes)
   const contenedor = document.getElementById('contenedor-filas');
   const btnAgregar = document.getElementById('agregar-fila');
 
-// 🆕 Delegación: al cambiar el telar, autocompletar Lote y Estilo
-contenedor.addEventListener('change', function(e) {
-  if (!e.target.matches('input[name="telar[]"]')) return;
-  const fila = e.target.closest('.fila-aporte');
-  if (!fila) return;
-  const info = (typeof obtenerInfoTelarParaAporte === 'function')
-    ? obtenerInfoTelarParaAporte(e.target.value)
-    : { lote:'', estilo:'' };
-  const loteInput   = fila.querySelector('input[name="lote[]"]');
-  const estiloInput = fila.querySelector('input[name="estilo[]"]');
-  if (loteInput && info.lote)     loteInput.value   = info.lote;
-  if (estiloInput && info.estilo) estiloInput.value = info.estilo;
-});
+  // 🔷 NUEVO: inicializar fecha de ocurrencia en hoy, máximo hoy
+  var fechaOcurrenciaInput = document.getElementById('fecha-ocurrencia');
+  function setFechaHoy() {
+    if (!fechaOcurrenciaInput) return;
+    var hoyISO = new Date().toISOString().slice(0, 10);
+    fechaOcurrenciaInput.max = hoyISO;
+    fechaOcurrenciaInput.value = hoyISO;
+  }
+  setFechaHoy();
+
+  function crearFila() {
 
 
 
@@ -2764,11 +2787,23 @@ contenedor.addEventListener('change', function(e) {
 
   // -------- Envío al backend --------
   document.getElementById('form-aportes').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    const nombre = document.getElementById('nombre-aportante').value.trim();
-    if (!nombre) { alert('Falta tu identificación.'); return; }
+  e.preventDefault();
+  const nombre = document.getElementById('nombre-aportante').value.trim();
+  if (!nombre) { alert('Falta tu identificación.'); return; }
 
-    const filas = document.querySelectorAll('#contenedor-filas .fila-aporte');
+  // 🔷 NUEVO: validar fecha de ocurrencia
+  const fechaOcurrencia = document.getElementById('fecha-ocurrencia').value;
+  if (!fechaOcurrencia) {
+    alert('Selecciona la fecha de ocurrencia del evento.');
+    return;
+  }
+  if (fechaOcurrencia > new Date().toISOString().slice(0, 10)) {
+    alert('La fecha de ocurrencia no puede ser futura.');
+    return;
+  }
+
+  const filas = document.querySelectorAll('#contenedor-filas .fila-aporte');
+
     const aportes = [];
     for (const f of filas) {
       const telar = f.querySelector('input[name="telar[]"]').value;
@@ -2789,16 +2824,22 @@ contenedor.addEventListener('change', function(e) {
     btn.textContent = '⏳ Enviando...';
 
     try {
-      const res = await fetch('/.netlify/functions/aporte', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nombre, aportes })
-      });
+    const res = await fetch('/.netlify/functions/aporte', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ nombre, aportes, fecha: fechaOcurrencia })  // 🔷 fecha incluida
+});
+
+
+
+
       if (!res.ok) throw new Error(await res.text());
 
       document.getElementById('mensaje-confirmacion').style.display = 'block';
-      this.reset();
-      while (contenedor.children.length > 1) contenedor.removeChild(contenedor.lastChild);
+this.reset();
+while (contenedor.children.length > 1) contenedor.removeChild(contenedor.lastChild);
+// 🔷 Re-setear fecha de ocurrencia en hoy tras el reset
+setFechaHoy();
 
       if (typeof cargarYRenderAportes === 'function') cargarYRenderAportes();
 
