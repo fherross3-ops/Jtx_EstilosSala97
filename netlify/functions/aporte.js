@@ -131,9 +131,13 @@ exports.handler = async (event) => {
     if (!contenidoActual.endsWith('\n')) contenidoActual += '\n';
 
     // 2. Construir nuevas filas
-    const now = new Date();
-    const fecha = now.toISOString().slice(0, 10);
-    const hora = now.toISOString().slice(11, 16);
+   // 🔷 Fecha de ocurrencia enviada por el formulario (fallback: hoy)
+let fechaOcurrencia = String(body.fecha || '').trim();
+if (!/^\d{4}-\d{2}-\d{2}$/.test(fechaOcurrencia)) {
+  fechaOcurrencia = new Date().toISOString().slice(0, 10);
+}
+const fecha = fechaOcurrencia;
+const hora  = new Date().toISOString().slice(11, 16);
 
     let nuevas = '';
     for (const a of lista) {
