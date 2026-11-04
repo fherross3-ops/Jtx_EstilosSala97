@@ -2708,7 +2708,77 @@ if (btnRefAportes) btnRefAportes.addEventListener('click', cargarYRenderAportes)
   const contenedor = document.getElementById('contenedor-filas');
   const btnAgregar = document.getElementById('agregar-fila');
 
-  // 🔷 NUEVO: inicializar fecha de ocurrencia en hoy, máximo hoy
+  // ============================================================
+  // 🔷 NUEVO: Autocompletado de lote/estilo por número de telar
+  // ============================================================
+  function buscarDatosTelar(numTelar) {
+    if (!numTelar) return null;
+    if (typeof allData === 'undefined' || !allData || Object.keys(allData).length === 0) return null;
+
+    var telarStr = String(numTelar).padStart(2, '0');
+
+    // Ordenar fechas de la más reciente a la más antigua
+    var fechas = Object.keys(allData).sort(function(a, b) {
+      var pa = a.split('/').map(Number);
+      var pb = b.split('/').map(Number);
+      var da = new Date(pa[2], pa[1] - 1, pa[0]).getTime();
+      var db = new Date(pb[2], pb[1] - 1, pb[0]).getTime();
+      return db - da;
+    });
+
+    for (var i = 0; i < fechas.length; i++) {
+      var datos = (allData[fechas[i]] && allData[fechas[i]].datos) || [];
+      var regs = datos.filter(function(d) { return d['Telar'] === telarStr; });
+      if (regs.length > 0) {
+        // Tomar el último registro del día (el más reciente dentro de ese día)
+        var r = regs[regs.length - 1];
+        return {
+          lote:   (r['Lote']   || '').trim(),
+          estilo: (r['Estilo'] || '').trim()
+        };
+      }
+    }
+    return null;
+  }
+
+  function conectarAutocompletado(fila) {
+    var inputTelar  = fila.querySelector('input[name="telar[]"]');
+    var inputLote   = fila.querySelector('input[name="lote[]"]');
+    var inputEstilo = fila.querySelector('input[name="estilo[]"]');
+    if (!inputTelar || !inputLote || !inputEstilo) return;
+    if (inputTelar.dataset.autocompletado === '1') return; // evitar duplicar listeners
+    inputTelar.dataset.autocompletado = '1';
+
+    var timerAuto = null;
+
+    function autocompletar() {
+      var numTelar = inputTelar.value.trim();
+      if (!numTelar) return;
+      var info = buscarDatosTelar(numTelar);
+      if (!info) return;
+      if (info.lote)   inputLote.value   = info.lote;
+      if (info.estilo) inputEstilo.value = info.estilo;
+    }
+
+    // Real-time: 400 ms después de dejar de teclear
+    inputTelar.addEventListener('input', function() {
+      clearTimeout(timerAuto);
+      timerAuto = setTimeout(autocompletar, 400);
+    });
+
+    // Al salir del campo (tab, click, etc.) fuerza la búsqueda
+    inputTelar.addEventListener('change', function() {
+      clearTimeout(timerAuto);
+      autocompletar();
+    });
+  }
+
+  // Conectar la fila inicial que ya está en el HTML
+  document.querySelectorAll('#contenedor-filas .fila-aporte').forEach(conectarAutocompletado);
+
+  // ============================================================
+  // Fecha de ocurrencia
+  // ============================================================
   var fechaOcurrenciaInput = document.getElementById('fecha-ocurrencia');
   function setFechaHoy() {
     if (!fechaOcurrenciaInput) return;
@@ -2718,12 +2788,9 @@ if (btnRefAportes) btnRefAportes.addEventListener('click', cargarYRenderAportes)
   }
   setFechaHoy();
 
-  function crearFila() {
-
-
-
-
-
+  // ============================================================
+  // Crear nueva fila (con autocompletado conectado)
+  // ============================================================
   function crearFila() {
     const fila = document.createElement('div');
     fila.className = 'fila-aporte';
@@ -2771,6 +2838,7 @@ if (btnRefAportes) btnRefAportes.addEventListener('click', cargarYRenderAportes)
   btnAgregar.addEventListener('click', function() {
     const nueva = crearFila();
     contenedor.appendChild(nueva);
+    conectarAutocompletado(nueva); // 🔷 conectar autocompletado a la nueva fila
     nueva.querySelector('.eliminar-fila').addEventListener('click', function() {
       if (contenedor.children.length > 1) contenedor.removeChild(nueva);
       else alert('Debe haber al menos una línea de aporte.');
@@ -2785,25 +2853,26 @@ if (btnRefAportes) btnRefAportes.addEventListener('click', cargarYRenderAportes)
     });
   });
 
-  // -------- Envío al backend --------
+  // ============================================================
+  // Envío al backend
+  // ============================================================
   document.getElementById('form-aportes').addEventListener('submit', async function(e) {
-  e.preventDefault();
-  const nombre = document.getElementById('nombre-aportante').value.trim();
-  if (!nombre) { alert('Falta tu identificación.'); return; }
+    e.preventDefault();
+    const nombre = document.getElementById('nombre-aportante').value.trim();
+    if (!nombre) { alert('Falta tu identificación.'); return; }
 
-  // 🔷 NUEVO: validar fecha de ocurrencia
-  const fechaOcurrencia = document.getElementById('fecha-ocurrencia').value;
-  if (!fechaOcurrencia) {
-    alert('Selecciona la fecha de ocurrencia del evento.');
-    return;
-  }
-  if (fechaOcurrencia > new Date().toISOString().slice(0, 10)) {
-    alert('La fecha de ocurrencia no puede ser futura.');
-    return;
-  }
+    // Validar fecha de ocurrencia
+    const fechaOcurrencia = document.getElementById('fecha-ocurrencia').value;
+    if (!fechaOcurrencia) {
+      alert('Selecciona la fecha de ocurrencia del evento.');
+      return;
+    }
+    if (fechaOcurrencia > new Date().toISOString().slice(0, 10)) {
+      alert('La fecha de ocurrencia no puede ser futura.');
+      return;
+    }
 
-  const filas = document.querySelectorAll('#contenedor-filas .fila-aporte');
-
+    const filas = document.querySelectorAll('#contenedor-filas .fila-aporte');
     const aportes = [];
     for (const f of filas) {
       const telar = f.querySelector('input[name="telar[]"]').value;
@@ -2824,22 +2893,17 @@ if (btnRefAportes) btnRefAportes.addEventListener('click', cargarYRenderAportes)
     btn.textContent = '⏳ Enviando...';
 
     try {
-    const res = await fetch('/.netlify/functions/aporte', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ nombre, aportes, fecha: fechaOcurrencia })  // 🔷 fecha incluida
-});
-
-
-
-
+      const res = await fetch('/.netlify/functions/aporte', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nombre, aportes, fecha: fechaOcurrencia })
+      });
       if (!res.ok) throw new Error(await res.text());
 
       document.getElementById('mensaje-confirmacion').style.display = 'block';
-this.reset();
-while (contenedor.children.length > 1) contenedor.removeChild(contenedor.lastChild);
-// 🔷 Re-setear fecha de ocurrencia en hoy tras el reset
-setFechaHoy();
+      this.reset();
+      while (contenedor.children.length > 1) contenedor.removeChild(contenedor.lastChild);
+      setFechaHoy();
 
       if (typeof cargarYRenderAportes === 'function') cargarYRenderAportes();
 
