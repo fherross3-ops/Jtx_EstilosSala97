@@ -19,6 +19,7 @@ const CONTRATOS = {
 
 function contratoDeTelar(telar) {
   const t = String(telar || '').padStart(2, '0');
+  if (t === '999') return 'GENERAL';
   for (const c in CONTRATOS) if (CONTRATOS[c].indexOf(t) !== -1) return c;
   return 'SIN_CONTRATO';
 }
