@@ -319,10 +319,6 @@ tr:hover td { background: var(--glass); }
 
 /* 🔷 Permite ocultar tarjetas del OEE sin borrarlas */
 #tab-oee .oee-card.oee-hidden { display: none !important; }
-
-
-
-
 </style>
 
 <!-- 100% privacy-first analytics -->
@@ -387,7 +383,6 @@ tr:hover td { background: var(--glass); }
         <div class="tab" data-tab="historial">📅 Historial</div>
         <div class="tab" data-tab="oee">📊 OEE</div>
         <div class="tab" data-tab="alertas">⚠️ Alertas</div>
-        <div class="tab" data-tab="aportes-dash">📊 Aportes Analytics</div>
         <div class="tab" data-tab="aportes">📝 Aportes</div>
         <div class="tab" data-tab="valid">✅ Validación</div>
       </div>
@@ -420,11 +415,10 @@ tr:hover td { background: var(--glass); }
           <label for="filtro-fecha-hasta">Hasta:</label>
           <input type="date" id="filtro-fecha-hasta">
           <label for="filtro-estilo">Estilo:</label>
-<input type="text" id="filtro-estilo" placeholder="Ej: Arandano" style="width:140px;">
-<label for="filtro-lote">Lote:</label>
-<input type="text" id="filtro-lote" placeholder="Ej: 102156" style="width:110px;">
-<button class="btn-filtrar" id="btnFiltrarTelar">🔍 Filtrar</button>
-
+          <input type="text" id="filtro-estilo" placeholder="Ej: Arandano" style="width:140px;">
+          <label for="filtro-lote">Lote:</label>
+          <input type="text" id="filtro-lote" placeholder="Ej: 102156" style="width:110px;">
+          <button class="btn-filtrar" id="btnFiltrarTelar">🔍 Filtrar</button>
           <button class="btn-filtrar" id="btnLimpiarFiltros" style="background:var(--bg-tertiary);color:var(--text-secondary);">✖ Limpiar</button>
         </div>
         <div class="table-wrapper" id="tableTelar"></div>
@@ -526,32 +520,6 @@ tr:hover td { background: var(--glass); }
 
       <div id="tab-alertas" class="tab-content"><div id="alertasContent"></div></div>
 
-
-<div id="tab-aportes-dash" class="tab-content">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
-    <div>
-      <div class="section-title" style="margin:0;">📊 Dashboard analítico de Aportes</div>
-      <div style="font-size:12px;color:var(--text-secondary);margin-top:4px;">
-        KPIs · gráficos · filtros · exportación — vista embebida desde <code>aportes-dashboard.html</code>
-      </div>
-    </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;">
-      <button class="btn btn-secondary" id="btnOpenAportesDash" type="button">🔗 Abrir en pestaña nueva</button>
-      <button class="btn btn-secondary" id="btnReloadAportesDash" type="button">🔄 Recargar</button>
-    </div>
-  </div>
-  <div style="background:var(--bg-tertiary);border:1px solid var(--border);border-radius:12px;overflow:hidden;">
-    <iframe id="iframeAportesDash"
-        src="about:blank"
-        style="width:100%;height:calc(100vh - 260px);min-height:700px;border:0;display:block;background:var(--bg-primary);"
-        loading="lazy"
-        referrerpolicy="no-referrer"></iframe>
-  </div>
-</div>
-
-
-
-
       <div id="tab-aportes" class="tab-content">
         <div class="filtros-telar">
           <label>Telar:</label>
@@ -564,6 +532,7 @@ tr:hover td { background: var(--glass); }
             <option value="Producción">Producción</option>
             <option value="Planificación">Planificación</option>
             <option value="Auditoría">Auditoría</option>
+            <option value="Paro General">Paro General</option>
           </select>
           <label>Desde:</label>
           <input type="date" id="ap-filtro-desde">
@@ -588,7 +557,6 @@ const FACTOR_PULG = 39.37007874;
 const STORAGE_KEY = 'tejeduria_history_final_v2';
 const TOTAL_TELARES = 97;
 
-// 🔷 Distribución de telares por contrato
 const CONTRATOS_TODOS = {
   'C01': ['01','02','03','04','10','11','12','13','14','19','20','21','22','23'],
   'C02': ['05','06','07','08','09','15','16','17','18','24','25','26','27','28'],
@@ -602,48 +570,27 @@ const CONTRATOS_TODOS = {
   'C10': ['107','108','109','110']
 };
 
-// 🔷 Solo se trabaja con C01..C07 = 97 telares
 const CONTRATOS_VISIBLES = ['C01','C02','C03','C04','C05','C06','C07'];
 
-// Universo reducido: solo los contratos visibles
 const CONTRATOS = {};
-CONTRATOS_VISIBLES.forEach(function(c) {
-  CONTRATOS[c] = CONTRATOS_TODOS[c];
-});
+CONTRATOS_VISIBLES.forEach(function(c) { CONTRATOS[c] = CONTRATOS_TODOS[c]; });
 
-// Lista plana de los 97 telares del universo visible
 const TELARES_UNIVERSO = CONTRATOS_VISIBLES.reduce(function(acc, c) {
   return acc.concat(CONTRATOS[c]);
 }, []).sort(function(a,b){ return parseInt(a) - parseInt(b); });
 
 const CONTRATO_TODOS = 'all';
 
-
 let allData = {};
 let currentFecha = null;
 let currentContrato = CONTRATO_TODOS;
 let charts = {};
 let vistaActual = null;
-let aportesCache = []; // 🔷 GLOBAL (antes estaba en el segundo script)
+let aportesCache = [];
 
-// ============================================================
-// 📂 CONFIGURACIÓN GITHUB
-// ============================================================
 const USUARIO_GITHUB = 'fherross3-ops';
 const REPOSITORIO_GITHUB = 'Jtx_EstilosSala97';
 const RAMA_GITHUB = 'main';
-
-// ============================================================
-// 📊 URL del dashboard standalone de aportes
-// ============================================================
-// Cambia esto según dónde alojes `aportes-dashboard.html`:
-//  · Mismo dominio que el index (Netlify):  './aportes-dashboard.html'
-//  · GitHub Pages:  'https://fherross3-ops.github.io/Jtx_EstilosSala97/aportes-dashboard.html'
-const APORTES_DASH_URL = './aportes/aportes-dashboard.html';
-
-
-
-
 
 async function cargarArchivosPrecargados() {
   showStatus('📂 Buscando archivos CSV en GitHub...', 'info');
@@ -658,7 +605,6 @@ async function cargarArchivosPrecargados() {
     const csvs = archivos
       .filter(function(archivo) { return archivo.name.endsWith('.csv') && archivo.name.includes('Tejeduria'); })
       .map(function(archivo) { return archivo.name; });
-    console.log('📂 Archivos CSV encontrados:', csvs);
     if (csvs.length === 0) {
       showStatus('⚠️ No se encontraron archivos CSV en el repositorio.', 'error');
       return;
@@ -670,9 +616,8 @@ async function cargarArchivosPrecargados() {
       var nombre = csvs[i];
       var urlRaw = 'https://raw.githubusercontent.com/fherross3-ops/Jtx_EstilosSala97/main/' + encodeURIComponent(nombre);
       try {
-        console.log('📥 Cargando:', nombre);
         var responseFile = await fetch(urlRaw);
-        if (!responseFile.ok) { console.warn('⚠️ No se pudo cargar', nombre, responseFile.status); continue; }
+        if (!responseFile.ok) continue;
         var texto = await responseFile.text();
         var workbook = XLSX.read(texto, { type: 'string', raw: true });
         var sheetName = workbook.SheetNames[0];
@@ -683,7 +628,6 @@ async function cargarArchivosPrecargados() {
         if (rowsValidas.length > 0) {
           todosLosResultados.push({ fileName: nombre, rows: rowsValidas });
           archivosCargados++;
-          console.log('✅ Cargado', nombre, rowsValidas.length, 'filas');
         }
       } catch (err) { console.error('❌ Error cargando', nombre, err); }
     }
@@ -715,7 +659,6 @@ const ORDEN_PRUEBA29 = [
 
 const DIAS_SEMANA = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
 
-// ---------- UTILIDADES ----------
 const num = v => {
   if (v === null || v === undefined || v === '') return 0;
   const n = Number(String(v).replace(',', '.').toString().replace(/\s/g,''));
@@ -726,10 +669,7 @@ const fmt = (n, d=2) => (isNaN(n) || !isFinite(n)) ? '0.00' : Number(n).toFixed(
 const fmtInt = (n) => (isNaN(n) || !isFinite(n)) ? '0' : Math.round(n).toString();
 
 function normalizarNombre(nombre) {
-  return String(nombre || '')
-    .replace(/[\r\n\t\u00A0\u200B\uFEFF]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
+  return String(nombre || '').replace(/[\r\n\t\u00A0\u200B\uFEFF]+/g, ' ').replace(/\s+/g, ' ').trim();
 }
 function obtenerColumna(row, cols, nombre) {
   if (!row || !cols || !nombre) return undefined;
@@ -783,7 +723,6 @@ function showStatus(msg, type) {
 }
 function getBenchmark() { return parseFloat(document.getElementById('benchmarkInput').value) || 5; }
 
-// ---------- TEMA ----------
 function initTheme() {
   var saved = localStorage.getItem('tejeduria_theme') || 'dark';
   document.documentElement.setAttribute('data-theme', saved);
@@ -798,7 +737,6 @@ document.getElementById('themeToggle').addEventListener('click', function() {
   if (currentFecha) renderCharts();
 });
 
-// ---------- HISTORIAL ----------
 function loadHistory() {
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); }
   catch(e) { return {}; }
@@ -818,7 +756,6 @@ function clearHistory() {
   }
 }
 
-// ---------- LECTURA DE ARCHIVOS ----------
 var dropZone = document.getElementById('dropZone');
 var fileInput = document.getElementById('fileInput');
 dropZone.addEventListener('dragover', function(e) { e.preventDefault(); });
@@ -860,7 +797,6 @@ function readOneFile(file) {
   });
 }
 
-// ---------- PROCESAMIENTO MULTI-DÍA ----------
 function procesarMultiDia(rows, fileName) {
   try {
     if (!rows || !rows.length) throw new Error('No hay datos válidos.');
@@ -945,7 +881,6 @@ function procesarMultiDia(rows, fileName) {
       });
     });
 
-    // 🔷 Se abre la fecha más reciente
     currentFecha = fechasUnicas[fechasUnicas.length - 1];
     currentContrato = CONTRATO_TODOS;
 
@@ -966,18 +901,16 @@ function procesarMultiDia(rows, fileName) {
   }
 }
 
-// 🔷 Resumen ligero por contrato para el histórico
 function resumenRapido(datos, fecha, fileName, contrato, timestamp) {
   var telaresContrato = (contrato && contrato !== CONTRATO_TODOS && CONTRATOS[contrato])
     ? CONTRATOS[contrato] : null;
 
   var datosF;
-if (telaresContrato) {
-  datosF = datos.filter(function(d) { return telaresContrato.indexOf(d['Telar']) !== -1; });
-} else {
-  // 🔷 "Todos": solo los 97 telares
-  datosF = datos.filter(function(d) { return TELARES_UNIVERSO.indexOf(d['Telar']) !== -1; });
-}
+  if (telaresContrato) {
+    datosF = datos.filter(function(d) { return telaresContrato.indexOf(d['Telar']) !== -1; });
+  } else {
+    datosF = datos.filter(function(d) { return TELARES_UNIVERSO.indexOf(d['Telar']) !== -1; });
+  }
 
   var activos = datosF.filter(function(d) { return d['Usar Capa 2'] === 'Sí'; });
   var totalPasadas = activos.reduce(function(s,d) { return s + d['Pasadas estimadas']; }, 0);
@@ -986,17 +919,16 @@ if (telaresContrato) {
   var totalUrd = activos.reduce(function(s,d) { return s + d['R Abs. Urd.']; }, 0);
   var totalManual = activos.reduce(function(s,d) { return s + d['R Abs. Manual']; }, 0);
 
-    var telaresActivosSet = new Set();
+  var telaresActivosSet = new Set();
   datosF.forEach(function(d) {
     if (d['Usar Capa 2'] === 'Sí' && d['Telar'] && d['Telar'] !== 'S/N') telaresActivosSet.add(d['Telar']);
   });
 
-  // 🔷 FALTABA esta línea
+  // 🔷 FIX: faltaba esta línea
   var telaresActivosCount = telaresActivosSet.size;
 
   var totalTelares = telaresContrato ? telaresContrato.length : TELARES_UNIVERSO.length;
   var telaresInactivosCount = Math.max(0, totalTelares - telaresActivosCount);
-
 
   var ut = totalPasadas > 0 ? ((totalTrama+totalUrd)/totalPasadas)*100000 : 0;
 
@@ -1024,19 +956,16 @@ if (telaresContrato) {
   };
 }
 
-// ---------- CÁLCULO COMPLETO CON FILTRO DE CONTRATO ----------
 function calcularTodo(datosOriginales, fecha, fileName, contrato) {
   var telaresContrato = (contrato && contrato !== CONTRATO_TODOS && CONTRATOS[contrato])
     ? CONTRATOS[contrato] : null;
 
   var datos;
-if (telaresContrato) {
-  // Contrato específico (C01..C07)
-  datos = datosOriginales.filter(function(d) { return telaresContrato.indexOf(d['Telar']) !== -1; });
-} else {
-  // 🔷 "Todos": solo los 97 telares del universo visible
-  datos = datosOriginales.filter(function(d) { return TELARES_UNIVERSO.indexOf(d['Telar']) !== -1; });
-}
+  if (telaresContrato) {
+    datos = datosOriginales.filter(function(d) { return telaresContrato.indexOf(d['Telar']) !== -1; });
+  } else {
+    datos = datosOriginales.filter(function(d) { return TELARES_UNIVERSO.indexOf(d['Telar']) !== -1; });
+  }
 
   var activos = datos.filter(function(d) { return d['Usar Capa 2'] === 'Sí'; });
   var totalPasadas = activos.reduce(function(s,d) { return s + d['Pasadas estimadas']; }, 0);
@@ -1061,10 +990,9 @@ if (telaresContrato) {
     totalTelares = telaresContrato.length;
     telaresInactivosCount = Math.max(0, totalTelares - telaresActivosCount);
   } else {
-  // 🔷 Modo "Todos": universo = solo los 97 telares de C01..C07
-  totalTelares = TELARES_UNIVERSO.length;   // = 97
-  telaresInactivosCount = Math.max(0, totalTelares - telaresActivosCount);
-}
+    totalTelares = TELARES_UNIVERSO.length;
+    telaresInactivosCount = Math.max(0, totalTelares - telaresActivosCount);
+  }
 
   var pctActivos = totalTelares > 0 ? (telaresActivosCount / totalTelares) * 100 : 0;
   var pctInactivos = totalTelares > 0 ? (telaresInactivosCount / totalTelares) * 100 : 0;
@@ -1093,7 +1021,6 @@ if (telaresContrato) {
     'Diagnóstico': diagUmasT(kpiGlobal['U+T / 100k'])
   }];
 
-  // Estilos
   var porEstilo = {};
   activos.forEach(function(d) {
     var e = str(d['Estilo']) || 'SIN ESTILO';
@@ -1126,7 +1053,6 @@ if (telaresContrato) {
     };
   }).sort(function(a,b) { return (a['U+T/100k'] || 0) - (b['U+T/100k'] || 0); });
 
-  // Telares
   var porTelar = {};
   activos.forEach(function(d) {
     var t = str(d['Telar']) || 'S/N';
@@ -1202,16 +1128,13 @@ if (telaresContrato) {
   };
 }
 
-// Compatibilidad
 function procesarDia(datos, fecha, fileName) {
   return calcularTodo(datos, fecha, fileName, CONTRATO_TODOS);
 }
 
-// ---------- SELECTOR DE DÍAS ----------
 function mostrarSelectorDias(fechas) {
   var selector = document.getElementById('daySelector');
   var select = document.getElementById('daySelect');
-  // 🔷 Orden DESCENDENTE para el dropdown (más reciente primero)
   var fechasOrdenadas = fechas.slice().reverse();
   select.innerHTML = fechasOrdenadas.map(function(f) {
     return '<option value="' + f + '">' + f + '</option>';
@@ -1226,7 +1149,6 @@ function mostrarSelectorDias(fechas) {
   });
 }
 
-// 🔷 Poblar selector de contratos
 function poblarSelectorContratos() {
   var sel = document.getElementById('contractSelect');
   if (!sel) return;
@@ -1247,7 +1169,6 @@ function poblarSelectorContratos() {
   document.getElementById('contractSelector').style.display = 'flex';
 }
 
-// ---------- RENDER PRINCIPAL ----------
 function renderAll() {
   if (!currentFecha || !allData[currentFecha]) return;
   var base = allData[currentFecha];
@@ -1274,7 +1195,6 @@ function renderAll() {
   renderHistorial();
   poblarSelectorTelares();
 
-  // 🔷 Re-render aportes si ya se cargaron
   if (typeof renderAportes === 'function' && aportesCache.length) renderAportes();
 
   var info = document.getElementById('contractInfo');
@@ -1292,7 +1212,6 @@ function renderAll() {
       (currentContrato === CONTRATO_TODOS ? 'Todos los contratos' : 'Contrato ' + currentContrato);
   }
 
-  // 🔷 Re-render OEE si la pestaña está activa (DENTRO de renderAll)
   var tabOEE = document.getElementById('tab-oee');
   if (tabOEE && tabOEE.classList.contains('active') && typeof renderOEE === 'function') {
     renderOEE();
@@ -1596,7 +1515,6 @@ function renderTabla(id, data, cols) {
   document.getElementById(id).innerHTML = html;
 }
 
-// ---------- TELARES ----------
 function renderTelarResumen(resumenTelar) {
   var html = '';
   if (!resumenTelar || resumenTelar.length === 0) {
@@ -1658,7 +1576,6 @@ function renderTelarFiltrado(telar, fechaDesde, fechaHasta, estilo, lote) {
     if (estilo && estilo.trim() !== '') {
       cumpleEstilo = str(row['Estilo'] || '').toLowerCase().includes(estilo.toLowerCase());
     }
-    // 🔷 Filtro por Lote (coincidencia parcial, sin distinguir mayúsculas)
     if (loteF !== '') {
       cumpleLote = str(row['Lote'] || '').toLowerCase().includes(loteF);
     }
@@ -1671,7 +1588,6 @@ function renderTelarFiltrado(telar, fechaDesde, fechaHasta, estilo, lote) {
     return;
   }
 
-  // 🔷 Se agrega columna Lote al resultado
   var columnas = ['Fecha','Día','Turno','Actividad','Telar','Operador','Estilo','Lote','PPP','Metros tejidos','RPM','% Efic. Máquina','% Efic. Operador','Trama/100k','Urd/100k','Manual/100k','U+T/100k','Total/100k'];
   var html = '<table><thead><tr>' + columnas.map(function(c) { return '<th>' + c + '</th>'; }).join('') + '</tr></thead><tbody>';
   filtrados.forEach(function(row) {
@@ -1710,57 +1626,6 @@ function poblarSelectorTelares() {
     });
 }
 
-// ============================================================
-// 🔎 Autocompletado de datos de telar para el formulario de aportes
-// ============================================================
-function obtenerInfoTelarParaAporte(telarValor) {
-  var info = { lote: '', estilo: '' };
-  if (!telarValor) return info;
-  var telarStr = String(telarValor).trim().padStart(2, '0');
-  if (!/^\d+$/.test(telarStr)) return info;
-
-  // 1) Buscar en datos de producción (allData), del más reciente al más antiguo
-  var fechas = Object.keys(allData).sort(function(a, b) {
-    var da = parsearFechaUniversal(a), db = parsearFechaUniversal(b);
-    return (da && db) ? db - da : 0; // DESC
-  });
-
-  for (var i = 0; i < fechas.length; i++) {
-    var datos = allData[fechas[i]].datos || [];
-    for (var j = datos.length - 1; j >= 0; j--) {
-      var row = datos[j];
-      if (row['Telar'] === telarStr) {
-        if (!info.lote && row['Lote']) info.lote = String(row['Lote']).trim();
-        if (!info.estilo && row['Estilo'] && row['Estilo'] !== 'SIN ESTILO')
-          info.estilo = String(row['Estilo']).trim();
-        if (info.lote && info.estilo) return info;
-      }
-    }
-  }
-
-  // 2) Fallback: aportes previos ya cargados
-  if (aportesCache && aportesCache.length) {
-    for (var k = aportesCache.length - 1; k >= 0; k--) {
-      var a = aportesCache[k];
-      if (a.telar === telarStr) {
-        if (!info.lote && a.lote) info.lote = a.lote;
-        if (!info.estilo && a.estilo) info.estilo = a.estilo;
-        if (info.lote && info.estilo) break;
-      }
-    }
-  }
-  return info;
-}
-
-
-
-
-
-
-
-
-
-// ---------- EVENTOS FILTROS TELAR ----------
 document.getElementById('btnFiltrarTelar').addEventListener('click', function() {
   var telar = document.getElementById('filtro-telar').value;
   var fechaDesde = document.getElementById('filtro-fecha-desde').value;
@@ -1775,55 +1640,13 @@ document.getElementById('btnLimpiarFiltros').addEventListener('click', function(
   document.getElementById('filtro-fecha-desde').value = '';
   document.getElementById('filtro-fecha-hasta').value = '';
   document.getElementById('filtro-estilo').value = '';
-  document.getElementById('filtro-lote').value = '';   // 🔷 NUEVO
+  document.getElementById('filtro-lote').value = '';
   currentContrato = CONTRATO_TODOS;
   var cSel = document.getElementById('contractSelect');
   if (cSel) cSel.value = 'all';
   renderAll();
 });
 
-// ============================================================
-// 📝 Aportes asociados a un telar (para mostrar en Alertas)
-// ============================================================
-function construirAportesTelarHtml(telarStr) {
-  var lista = (aportesCache || []).filter(function(a) {
-    return String(a.telar) === String(telarStr);
-  });
-
-  if (!lista.length) {
-    return '<div style="margin-top:10px;font-size:11px;color:var(--text-secondary);font-style:italic;">📝 Sin aportes registrados para este telar.</div>';
-  }
-
-  // Tomar los últimos 5 (los aportes se cargan en orden cronológico)
-  var ultimos = lista.slice(-5).reverse();
-  var encabezado = '📝 Aportes registrados (' + lista.length +
-                   (lista.length > 5 ? ' · mostrando los últimos 5' : '') + '):';
-
-  var items = ultimos.map(function(a) {
-    return '<div style="font-size:11px;padding:6px 9px;background:rgba(0,0,0,0.14);border-radius:5px;margin-bottom:4px;line-height:1.45;">' +
-      '<div><strong>' + (a.fecha || '') + ' ' + (a.hora || '') + '</strong>' +
-        ' · <span style="color:var(--accent);font-weight:600;">' + (a.clase || '') + '</span>' +
-        ' · <em>' + (a.nombre || 'Anónimo') + '</em>' +
-      '</div>' +
-      '<div style="color:var(--text-secondary);margin-top:2px;">' + (a.descripcion || '') + '</div>' +
-    '</div>';
-  }).join('');
-
-  return '<div style="margin-top:10px;padding-top:10px;border-top:1px dashed rgba(128,128,128,0.35);">' +
-    '<div style="font-size:11px;font-weight:600;color:var(--text-secondary);margin-bottom:6px;">' + encabezado + '</div>' +
-    items +
-  '</div>';
-}
-
-
-
-
-
-
-
-
-
-// ---------- ALERTAS ----------
 function renderAlertas(dataArg) {
   var alerts = [];
   var data = dataArg || vistaActual;
@@ -1838,23 +1661,9 @@ function renderAlertas(dataArg) {
   data.resumenEstilo.filter(function(e) { return e['U+T/100k'] >= 6; }).forEach(function(e) {
     alerts.push({ type: 'critical', title: '🔴 Estilo crítico: ' + e['Estilo'], desc: 'U+T/100k = ' + fmt(e['U+T/100k']) + ' (' + e['Metros'] + 'm)' });
   });
-
-
-
-
-
- data.resumenTelar.filter(function(t) { return t['U+T/100k'] >= benchmark * 1.5; }).forEach(function(t) {
-  alerts.push({
-    type: 'critical',
-    title: '🔴 Telar ' + t['Telar'] + ' fuera de control',
-    desc: 'U+T/100k = ' + fmt(t['U+T/100k']) + ' · Estilo: ' + t['Estilo dominante'],
-    extra: construirAportesTelarHtml(t['Telar'])   // 🆕 aportes asociados
+  data.resumenTelar.filter(function(t) { return t['U+T/100k'] >= benchmark * 1.5; }).forEach(function(t) {
+    alerts.push({ type: 'critical', title: '🔴 Telar ' + t['Telar'] + ' fuera de control', desc: 'U+T/100k = ' + fmt(t['U+T/100k']) + ' · Estilo: ' + t['Estilo dominante'] });
   });
-});
-
-
-
-
   if (data.kpiGlobal['U+T / 100k'] >= benchmark) {
     alerts.push({ type: 'warning', title: '⚠️ ' + (currentContrato === CONTRATO_TODOS ? 'Sala' : 'Contrato ' + currentContrato) + ' supera benchmark (' + benchmark + ')', desc: 'U+T/100k = ' + fmt(data.kpiGlobal['U+T / 100k']) });
   }
@@ -1863,21 +1672,11 @@ function renderAlertas(dataArg) {
     document.getElementById('alertasContent').innerHTML = '<div class="alert-item" style="background:rgba(16,185,129,0.1);border-color:var(--success);"><strong>✅ Sin alertas</strong><br>Todo dentro de los parámetros esperados.</div>';
     return;
   }
-
-
-
- document.getElementById('alertasContent').innerHTML = alerts.map(function(a) {
-  return '<div class="alert-item ' + (a.type === 'critical' ? 'critical' : '') + '">' +
-    '<strong>' + a.title + '</strong><br>' +
-    '<span style="font-size:12px;color:var(--text-secondary);">' + a.desc + '</span>' +
-    (a.extra || '') +
-  '</div>';
-}).join('');
-
-
+  document.getElementById('alertasContent').innerHTML = alerts.map(function(a) {
+    return '<div class="alert-item ' + (a.type === 'critical' ? 'critical' : '') + '"><strong>' + a.title + '</strong><br><span style="font-size:12px;color:var(--text-secondary);">' + a.desc + '</span></div>';
+  }).join('');
 }
 
-// ---------- HISTORIAL (por contrato) ----------
 function renderHistorial() {
   var hist = loadHistory();
   var fechas = Object.keys(hist)
@@ -1950,7 +1749,6 @@ function renderHistorial() {
   document.getElementById('historialContent').innerHTML = html;
 }
 
-// ---------- EXPORTAR ----------
 document.getElementById('btnExportAll').addEventListener('click', function() {
   var wb = XLSX.utils.book_new();
   Object.keys(allData).forEach(function(fecha) {
@@ -1983,7 +1781,6 @@ document.getElementById('btnExportSeparate').addEventListener('click', function(
   });
 });
 
-// ---------- EVENT LISTENERS ----------
 document.getElementById('btnClearHistory').addEventListener('click', clearHistory);
 document.getElementById('btnReset').addEventListener('click', function() { location.reload(); });
 document.getElementById('benchmarkInput').addEventListener('change', function() {
@@ -1999,39 +1796,17 @@ document.querySelectorAll('.tab').forEach(function(tab) {
     document.getElementById('tab-' + tabId).classList.add('active');
     if (tabId === 'dashboard' && currentFecha) renderCharts();
     if (tabId === 'oee' && typeof renderOEE === 'function') renderOEE();
-   
-if (tabId === 'aportes-dash') {
-  const ifr = document.getElementById('iframeAportesDash');
-  if (ifr && (ifr.src === 'about:blank' || !ifr.src)) {
-    ifr.src = APORTES_DASH_URL + '?t=' + Date.now();
-  }
-}
-
-
-
-if (tabId === 'aportes' && typeof cargarYRenderAportes === 'function') {
-  if (!aportesCache.length) cargarYRenderAportes();
-  else renderAportes();
-}
-if (tabId === 'alertas' && typeof cargarYRenderAportes === 'function') {
-  if (!aportesCache.length) {
-    cargarYRenderAportes().then(function() {
-      if (typeof renderAlertas === 'function') renderAlertas(vistaActual);
-    });
-  } else {
-    renderAlertas(vistaActual);
-  }
-}
-
-
-
-
+    if (tabId === 'aportes' && typeof cargarYRenderAportes === 'function') {
+      if (!aportesCache.length) cargarYRenderAportes();
+      else renderAportes();
+    }
     if (tabId === 'telar' && currentFecha) {
       var telarSelect = document.getElementById('filtro-telar');
       if (telarSelect && telarSelect.value === 'all' &&
           document.getElementById('filtro-fecha-desde').value === '' &&
           document.getElementById('filtro-fecha-hasta').value === '' &&
-          document.getElementById('filtro-estilo').value === '') {
+          document.getElementById('filtro-estilo').value === '' &&
+          document.getElementById('filtro-lote').value === '') {
         renderTelarResumen(vistaActual ? vistaActual.resumenTelar : []);
       } else {
         document.getElementById('btnFiltrarTelar').click();
@@ -2040,42 +1815,14 @@ if (tabId === 'alertas' && typeof cargarYRenderAportes === 'function') {
   });
 });
 
-// ---------- INIT ----------
 initTheme();
 setTimeout(function() { cargarArchivosPrecargados(); }, 500);
-
-// 🆕 Precarga de aportes para que la pestaña Alertas los tenga disponibles
-setTimeout(function() {
-  if (typeof cargarYRenderAportes === 'function' && !aportesCache.length) {
-    cargarYRenderAportes();
-  }
-}, 1800);
-
-// ============================================================
-// 📊 Eventos del dashboard de aportes embebido
-// ============================================================
-(function initAportesDash() {
-  const ifr = document.getElementById('iframeAportesDash');
-  const btnOpen = document.getElementById('btnOpenAportesDash');
-  const btnReload = document.getElementById('btnReloadAportesDash');
-
-  function cargarIframe() {
-    if (ifr) ifr.src = APORTES_DASH_URL + '?t=' + Date.now();
-  }
-
-  if (btnOpen) btnOpen.addEventListener('click', function() {
-    window.open(APORTES_DASH_URL, '_blank', 'noopener');
-  });
-  if (btnReload) btnReload.addEventListener('click', cargarIframe);
-})();
-
-
 
 // ============================================================
 // 📊 OEE — Integración con datos del dashboard
 // ============================================================
 const OEE_CFG = {
-  metaMes: 524378,
+  metaMes: 500000,
   metaIndice: 4.3,
   ritmoEstandar: 380,
   umbral: { oee:{v:60,a:40}, disp:{v:85,a:70}, rend:{v:80,a:60}, cal:{v:98,a:95} }
@@ -2192,11 +1939,11 @@ function renderOEE(){
   var RITMO_TEND = REG.a + REG.b*(ultimoDia + 1 + DIAS_RESTANTES/2);
   var PROY_CONSERV = TOTAL_METROS + RITMO_7D*DIAS_RESTANTES;
 
- document.getElementById('oeeBadges').innerHTML =
-  '<div class="oee-badge">Periodo <b>' + OEE_DIAS[0].fechaRaw + ' – ' + OEE_DIAS[OEE_DIAS.length-1].fechaRaw + '</b></div>' +
-  '<div class="oee-badge">Universo <b>' + (currentContrato === CONTRATO_TODOS ? '97 telares (C01–C07)' : 'Contrato ' + currentContrato) + '</b></div>' +
-  '<div class="oee-badge">Meta mes <b>' + oeeNf(OEE_CFG.metaMes) + ' m</b></div>' +
-  '<div class="oee-badge">Índice meta <b>&lt; ' + OEE_CFG.metaIndice + '</b></div>';
+  document.getElementById('oeeBadges').innerHTML =
+    '<div class="oee-badge">Periodo <b>' + OEE_DIAS[0].fechaRaw + ' – ' + OEE_DIAS[OEE_DIAS.length-1].fechaRaw + '</b></div>' +
+    '<div class="oee-badge">Universo <b>' + (currentContrato === CONTRATO_TODOS ? '97 telares (C01–C07)' : 'Contrato ' + currentContrato) + '</b></div>' +
+    '<div class="oee-badge">Meta mes <b>' + oeeNf(OEE_CFG.metaMes) + ' m</b></div>' +
+    '<div class="oee-badge">Índice meta <b>&lt; ' + OEE_CFG.metaIndice + '</b></div>';
 
   var avance = TOTAL_METROS/OEE_CFG.metaMes;
   var cards = [
@@ -2309,16 +2056,15 @@ function renderOEECharts(MC, REG, TOTAL_METROS, ultimoDia, diasMes, DIAS_RESTANT
   };
   var LEG = { labels:{ color:'#8ba0c0', boxWidth:11, boxHeight:11, usePointStyle:true, pointStyle:'circle', padding:14 } };
 
-  // 🔷 Desactivar datalabels por defecto en TODAS las gráficas del OEE
+  // 🔷 Desactivar datalabels en gráficas OEE
   var NO_LABELS = { display: false };
 
-  // 🔷 Formateadores numéricos en español
   var fmtMiles = function(v){ return v==null ? '' : Number(v).toLocaleString('es-ES',{maximumFractionDigits:0}); };
   var fmt1 = function(v){ return v==null ? '' : Number(v).toLocaleString('es-ES',{minimumFractionDigits:1,maximumFractionDigits:1}); };
   var fmt2 = function(v){ return v==null ? '' : Number(v).toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2}); };
   var fmtPct = function(v){ return v==null ? '' : Number(v).toLocaleString('es-ES',{minimumFractionDigits:1,maximumFractionDigits:1})+'%'; };
 
-  // ---------- 12.1 Producción diaria + proyección ----------
+  // 12.1 Producción diaria
   var labels = Array.from({length:diasMes},(_,i)=>String(i+1));
   var realArr = labels.map((_,i)=>{ var d=OEE_DIAS.find(x=>x.dia===i+1); return d?d.metros:null; });
   var proyArr = labels.map((_,i)=>{ var dia=i+1; if(dia<=ultimoDia) return null; return Math.max(0, REG.a+REG.b*dia); });
@@ -2334,27 +2080,17 @@ function renderOEECharts(MC, REG, TOTAL_METROS, ultimoDia, diasMes, DIAS_RESTANT
     options:{
       responsive:true, maintainAspectRatio:false,
       plugins:{
-        legend:LEG,
-        datalabels:NO_LABELS,
-        tooltip:{
-          callbacks:{
-            title: function(items){ return 'Día ' + items[0].label; },
-            label: function(c){
-              var v = c.parsed.y;
-              if (v === null || v === undefined) return c.dataset.label + ': —';
-              return c.dataset.label + ': ' + fmtMiles(v) + ' m';
-            }
-          }
-        }
+        legend:LEG, datalabels:NO_LABELS,
+        tooltip:{ callbacks:{
+          title: function(items){ return 'Día ' + items[0].label; },
+          label: function(c){ var v=c.parsed.y; if(v===null||v===undefined) return c.dataset.label+': —'; return c.dataset.label+': '+fmtMiles(v)+' m'; }
+        }}
       },
-      scales:{
-        x: SC.x,
-        y:{ grid:GRID, beginAtZero:true, ticks:{ color:'#8ba0c0', callback:function(v){ return fmtMiles(v); } } }
-      }
+      scales:{ x:SC.x, y:{ grid:GRID, beginAtZero:true, ticks:{ color:'#8ba0c0', callback:function(v){ return fmtMiles(v); } } } }
     }
   });
 
-  // ---------- 12.2 Acumulado vs meta ----------
+  // 12.2 Acumulado
   var acum=0;
   var acumReal = labels.map((_,i)=>{ var d=OEE_DIAS.find(x=>x.dia===i+1); if(d){acum+=d.metros; return acum;} return null; });
   var acumProy = labels.map((_,i)=>{ var dia=i+1; if(dia<ultimoDia) return null; if(dia===ultimoDia) return TOTAL_METROS; var t=TOTAL_METROS; for(var d=ultimoDia+1;d<=dia;d++) t+=Math.max(0,REG.a+REG.b*d); return t; });
@@ -2370,27 +2106,17 @@ function renderOEECharts(MC, REG, TOTAL_METROS, ultimoDia, diasMes, DIAS_RESTANT
     options:{
       responsive:true, maintainAspectRatio:false,
       plugins:{
-        legend:LEG,
-        datalabels:NO_LABELS,
-        tooltip:{
-          callbacks:{
-            title: function(items){ return 'Día ' + items[0].label; },
-            label: function(c){
-              var v = c.parsed.y;
-              if (v === null || v === undefined) return c.dataset.label + ': —';
-              return c.dataset.label + ': ' + fmtMiles(v) + ' m';
-            }
-          }
-        }
+        legend:LEG, datalabels:NO_LABELS,
+        tooltip:{ callbacks:{
+          title: function(items){ return 'Día ' + items[0].label; },
+          label: function(c){ var v=c.parsed.y; if(v===null||v===undefined) return c.dataset.label+': —'; return c.dataset.label+': '+fmtMiles(v)+' m'; }
+        }}
       },
-      scales:{
-        x:SC.x,
-        y:{ grid:GRID, beginAtZero:true, ticks:{ color:'#8ba0c0', callback:function(v){ return fmtMiles(v/1000)+'k'; } } }
-      }
+      scales:{ x:SC.x, y:{ grid:GRID, beginAtZero:true, ticks:{ color:'#8ba0c0', callback:function(v){ return fmtMiles(v/1000)+'k'; } } } }
     }
   });
 
-  // ---------- 12.3 OEE y componentes ----------
+  // 12.3 OEE componentes
   var labelsDias = OEE_DIAS.map(d=>d.dia+'/'+d.fecha.split('-')[2]);
   oeeCharts.oee = new Chart(document.getElementById('oeeChOEE'), {
     type:'line',
@@ -2403,22 +2129,14 @@ function renderOEECharts(MC, REG, TOTAL_METROS, ultimoDia, diasMes, DIAS_RESTANT
     options:{
       responsive:true, maintainAspectRatio:false,
       plugins:{
-        legend:LEG,
-        datalabels:NO_LABELS,
-        tooltip:{
-          callbacks:{
-            label: function(c){ return c.dataset.label + ': ' + fmtPct(c.parsed.y); }
-          }
-        }
+        legend:LEG, datalabels:NO_LABELS,
+        tooltip:{ callbacks:{ label: function(c){ return c.dataset.label+': '+fmtPct(c.parsed.y); } } }
       },
-      scales:{
-        x:SC.x,
-        y:{ grid:GRID, beginAtZero:true, max:100, ticks:{ color:'#8ba0c0', callback:function(v){ return v+'%'; } } }
-      }
+      scales:{ x:SC.x, y:{ grid:GRID, beginAtZero:true, max:100, ticks:{ color:'#8ba0c0', callback:function(v){ return v+'%'; } } } }
     }
   });
 
-  // ---------- 12.4 Índice de paros ----------
+  // 12.4 Índice
   oeeCharts.idx = new Chart(document.getElementById('oeeChIdx'), {
     type:'line',
     data:{ labels: labelsDias, datasets:[
@@ -2429,62 +2147,50 @@ function renderOEECharts(MC, REG, TOTAL_METROS, ultimoDia, diasMes, DIAS_RESTANT
     options:{
       responsive:true, maintainAspectRatio:false,
       plugins:{
-        legend:LEG,
-        datalabels:NO_LABELS,
-        tooltip:{
-          callbacks:{
-            label: function(c){ return c.dataset.label + ': ' + fmt2(c.parsed.y); }
-          }
-        }
+        legend:LEG, datalabels:NO_LABELS,
+        tooltip:{ callbacks:{ label: function(c){ return c.dataset.label+': '+fmt2(c.parsed.y); } } }
       },
-      scales:{
-        x:SC.x,
-        y:{ grid:GRID, beginAtZero:false, suggestedMin:3.5, suggestedMax:6, ticks:{ color:'#8ba0c0', callback:function(v){ return fmt1(v); } } }
-      }
+      scales:{ x:SC.x, y:{ grid:GRID, beginAtZero:false, suggestedMin:3.5, suggestedMax:6, ticks:{ color:'#8ba0c0', callback:function(v){ return fmt1(v); } } } }
     }
   });
 
-  // ---------- 12.5 Evolución de la probabilidad ----------
-  var probLabels=[], probData=[];
-  for(var d=6; d<=ultimoDia; d++){
-    var p = oeeMonteCarlo(OEE_DIAS, d, diasMes, 2500).prob;
-    probLabels.push(d+'/'+OEE_DIAS[OEE_DIAS.length-1].fecha.split('-')[2]);
-    probData.push(+(p*100).toFixed(1));
+  // 12.5 Probabilidad (OCULTA con .oee-hidden; no se crea si no es visible)
+  var canvasProb = document.getElementById('oeeChProb');
+  if (canvasProb && canvasProb.offsetParent !== null) {
+    var probLabels=[], probData=[];
+    for(var d=6; d<=ultimoDia; d++){
+      var p = oeeMonteCarlo(OEE_DIAS, d, diasMes, 2500).prob;
+      probLabels.push(d+'/'+OEE_DIAS[OEE_DIAS.length-1].fecha.split('-')[2]);
+      probData.push(+(p*100).toFixed(1));
+    }
+    oeeCharts.prob = new Chart(canvasProb, {
+      type:'line',
+      data:{ labels: probLabels, datasets:[
+        { label:'Probabilidad de cumplimiento', data:probData, borderColor:'#22c55e', backgroundColor:'rgba(34,197,94,.15)', borderWidth:3, pointRadius:4, tension:.35, fill:true, pointBackgroundColor:'#22c55e', pointBorderColor:'#0d1626', pointBorderWidth:2 },
+        { label:'Umbral 80%', data:probLabels.map(()=>80), borderColor:'#f5b301', borderDash:[6,4], borderWidth:1.6, pointRadius:0, fill:false }
+      ]},
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        plugins:{
+          legend:LEG, datalabels:NO_LABELS,
+          tooltip:{ callbacks:{ label: function(c){ return c.dataset.label+': '+fmtPct(c.parsed.y); } } }
+        },
+        scales:{ x:SC.x, y:{ grid:GRID, beginAtZero:true, max:100, ticks:{ color:'#8ba0c0', callback:function(v){ return v+'%'; } } } }
+      }
+    });
   }
-  oeeCharts.prob = new Chart(document.getElementById('oeeChProb'), {
-    type:'line',
-    data:{ labels: probLabels, datasets:[
-      { label:'Probabilidad de cumplimiento', data:probData, borderColor:'#22c55e', backgroundColor:'rgba(34,197,94,.15)', borderWidth:3, pointRadius:4, tension:.35, fill:true, pointBackgroundColor:'#22c55e', pointBorderColor:'#0d1626', pointBorderWidth:2 },
-      { label:'Umbral 80%', data:probLabels.map(()=>80), borderColor:'#f5b301', borderDash:[6,4], borderWidth:1.6, pointRadius:0, fill:false }
-    ]},
-    options:{
-      responsive:true, maintainAspectRatio:false,
-      plugins:{
-        legend:LEG,
-        datalabels:NO_LABELS,
-        tooltip:{
-          callbacks:{
-            label: function(c){ return c.dataset.label + ': ' + fmtPct(c.parsed.y); }
-          }
-        }
-      },
-      scales:{
-        x:SC.x,
-        y:{ grid:GRID, beginAtZero:true, max:100, ticks:{ color:'#8ba0c0', callback:function(v){ return v+'%'; } } }
-      }
-    }
-  });
 
-  // ---------- 12.6 Histograma Monte Carlo ----------
+  // 12.6 Histograma (OCULTO con .oee-hidden; no se crea si no es visible)
+  var canvasHist = document.getElementById('oeeChHist');
   var muestras = MC.muestras;
-  if (muestras && muestras.length) {
+  if (canvasHist && canvasHist.offsetParent !== null && muestras && muestras.length) {
     var min = muestras[0], max = muestras[muestras.length-1];
     var nBins = 32, ancho = (max-min)/nBins;
     var bins = new Array(nBins).fill(0);
     muestras.forEach(v=>{ var i=Math.floor((v-min)/ancho); if(i>=nBins)i=nBins-1; if(i<0)i=0; bins[i]++; });
     var binLabels = bins.map((_,i)=>Math.round((min+ancho*(i+0.5))/1000)+'k');
 
-    oeeCharts.hist = new Chart(document.getElementById('oeeChHist'), {
+    oeeCharts.hist = new Chart(canvasHist, {
       type:'bar',
       data:{ labels: binLabels, datasets:[{
         label:'Frecuencia', data: bins,
@@ -2494,14 +2200,11 @@ function renderOEECharts(MC, REG, TOTAL_METROS, ultimoDia, diasMes, DIAS_RESTANT
       options:{
         responsive:true, maintainAspectRatio:false,
         plugins:{
-          legend:{ display:false },
-          datalabels:NO_LABELS,
-          tooltip:{
-            callbacks:{
-              title: function(items){ return '≈ ' + fmtMiles(min + ancho*(items[0].dataIndex+0.5)) + ' m'; },
-              label: function(c){ return fmtMiles(c.parsed.y) + ' simulaciones'; }
-            }
-          }
+          legend:{ display:false }, datalabels:NO_LABELS,
+          tooltip:{ callbacks:{
+            title: function(items){ return '≈ ' + fmtMiles(min + ancho*(items[0].dataIndex+0.5)) + ' m'; },
+            label: function(c){ return fmtMiles(c.parsed.y) + ' simulaciones'; }
+          }}
         },
         scales:{
           x:{ grid:{display:false}, ticks:{ color:'#8ba0c0', maxRotation:0, autoSkip:true, maxTicksLimit:12 } },
@@ -2515,8 +2218,6 @@ function renderOEECharts(MC, REG, TOTAL_METROS, ultimoDia, diasMes, DIAS_RESTANT
 // ============================================================
 // 📝 APORTES — carga, filtros y render
 // ============================================================
-// 🔷 aportesCache ya está declarado globalmente arriba
-
 async function cargarYRenderAportes() {
   const cont = document.getElementById('aportesContent');
   if (!cont) return;
@@ -2537,7 +2238,7 @@ function renderAportes() {
 
   let lista = aportesCache;
   if (currentContrato !== CONTRATO_TODOS) {
-    lista = lista.filter(a => a.contrato === currentContrato);
+    lista = lista.filter(a => a.contrato === currentContrato || a.contrato === 'GENERAL');
   }
 
   const telarF = (document.getElementById('ap-filtro-telar')?.value || '').trim();
@@ -2573,27 +2274,20 @@ function renderAportes() {
   html += '<div class="table-wrapper"><table><thead><tr>' +
     cols.map(c => '<th>' + c + '</th>').join('') +
     '</tr></thead><tbody>';
- 
 
-
-// 🔷 Ordenar por fecha de ocurrencia descendente, y por hora descendente
-lista.slice()
-  .sort(function(a, b) {
-    if (a.fecha !== b.fecha) return (a.fecha < b.fecha) ? 1 : -1;
-    return (b.hora || '').localeCompare(a.hora || '');
-  })
-  .forEach(function(a) {
-    html += '<tr>' + cols.map(c => '<td>' + (a[c] || '') + '</td>').join('') + '</tr>';
-  });
-
-
-
+  lista.slice()
+    .sort(function(a, b) {
+      if (a.fecha !== b.fecha) return (a.fecha < b.fecha) ? 1 : -1;
+      return (b.hora || '').localeCompare(a.hora || '');
+    })
+    .forEach(function(a) {
+      html += '<tr>' + cols.map(c => '<td>' + (a[c] || '') + '</td>').join('') + '</tr>';
+    });
 
   html += '</tbody></table></div>';
   cont.innerHTML = html;
 }
 
-// Listeners de filtros de aportes (script al final del body, DOM ya listo)
 ['ap-filtro-telar', 'ap-filtro-clase', 'ap-filtro-desde'].forEach(id => {
   const el = document.getElementById(id);
   if (el) {
@@ -2613,31 +2307,30 @@ if (btnRefAportes) btnRefAportes.addEventListener('click', cargarYRenderAportes)
     <h2 style="color: #4a3520; font-size: 26px; margin: 0; letter-spacing: 1px;">🏺 Aportes de Valor Agregado</h2>
     <p style="color: #7a654f; font-size: 14px; margin: 5px 0 0 0;">Comparte tu conocimiento sobre telares, lotes, estilos y clases</p>
     <p style="color: #8b6f4c; font-size: 13px; font-weight: 500; margin: 3px 0 0 0;">💡 Puedes agregar múltiples líneas de aportes en un solo envío</p>
-<div>
-  <label for="nombre-aportante" style="display: block; font-weight: 600; color: #4a3520; margin-bottom: 4px; font-size: 14px;">
-    👤 Identificación <span style="color: #a0522d;">*</span>
-  </label>
-  <input type="text" id="nombre-aportante" name="nombre-aportante"
-         placeholder="Ej: Nombre Apellido" required
-         style="width: 100%; padding: 10px 12px; border: 2px solid #d4c8b8; border-radius: 8px; font-size: 15px; background: white; box-sizing: border-box;" />
-</div>
+  </div>
 
-<!-- 🔷 NUEVO: fecha de ocurrencia -->
-<div>
-  <label for="fecha-ocurrencia" style="display: block; font-weight: 600; color: #4a3520; margin-bottom: 4px; font-size: 14px;">
-    📅 Fecha de ocurrencia <span style="color: #a0522d;">*</span>
-  </label>
-  <input type="date" id="fecha-ocurrencia" name="fecha-ocurrencia" required
-         style="width: 100%; padding: 10px 12px; border: 2px solid #d4c8b8; border-radius: 8px; font-size: 15px; background: white; box-sizing: border-box;" />
-  <p style="font-size: 12px; color: #7a654f; margin: 4px 0 0 0;">
-    Día en que ocurrió el evento (no el día en que lo registras)
-  </p>
-</div>
-<!-- 🔷 FIN NUEVO -->
+  <form id="form-aportes" novalidate style="display: flex; flex-direction: column; gap: 15px;">
+    <div>
+      <label for="nombre-aportante" style="display: block; font-weight: 600; color: #4a3520; margin-bottom: 4px; font-size: 14px;">
+        👤 Identificación <span style="color: #a0522d;">*</span>
+      </label>
+      <input type="text" id="nombre-aportante" name="nombre-aportante"
+             placeholder="Ej: Nombre Apellido" required
+             style="width: 100%; padding: 10px 12px; border: 2px solid #d4c8b8; border-radius: 8px; font-size: 15px; background: white; box-sizing: border-box;" />
+    </div>
 
-<div style="background: white; border-radius: 10px; padding: 20px; border: 2px solid #d4c8b8; overflow-x: auto;">
+    <div>
+      <label for="fecha-ocurrencia" style="display: block; font-weight: 600; color: #4a3520; margin-bottom: 4px; font-size: 14px;">
+        📅 Fecha de ocurrencia <span style="color: #a0522d;">*</span>
+      </label>
+      <input type="date" id="fecha-ocurrencia" name="fecha-ocurrencia" required
+             style="width: 100%; padding: 10px 12px; border: 2px solid #d4c8b8; border-radius: 8px; font-size: 15px; background: white; box-sizing: border-box;" />
+      <p style="font-size: 12px; color: #7a654f; margin: 4px 0 0 0;">
+        Día en que ocurrió el evento (no el día en que lo registras)
+      </p>
+    </div>
 
-
+    <div style="background: white; border-radius: 10px; padding: 20px; border: 2px solid #d4c8b8; overflow-x: auto;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
         <h3 style="color: #4a3520; font-size: 16px; margin: 0;">📋 Líneas de Aportes</h3>
         <button type="button" id="agregar-fila"
@@ -2651,7 +2344,7 @@ if (btnRefAportes) btnRefAportes.addEventListener('click', cargarYRenderAportes)
         <div class="fila-aporte" style="display: grid; grid-template-columns: 70px 100px 1fr 1fr 1.8fr 30px; gap: 8px; margin-bottom: 10px; padding: 10px; background: #faf8f5; border-radius: 8px; align-items: center;">
           <div>
             <label style="font-size: 11px; font-weight: 600; color: #4a3520; display: block; margin-bottom: 2px;">Telar</label>
-            <input type="number" name="telar[]" min="1" max="113" placeholder="001" required
+            <input type="number" name="telar[]" min="1" max="999" placeholder="001" required
                    style="width: 100%; padding: 6px 4px; border: 2px solid #d4c8b8; border-radius: 6px; font-size: 14px; text-align: center; box-sizing: border-box;" />
           </div>
           <div>
@@ -2673,6 +2366,7 @@ if (btnRefAportes) btnRefAportes.addEventListener('click', cargarYRenderAportes)
               <option value="Producción">Producción</option>
               <option value="Planificación">Planificación</option>
               <option value="Auditoría">Auditoría</option>
+              <option value="Paro General">Paro General</option>
             </select>
           </div>
           <div>
@@ -2688,7 +2382,7 @@ if (btnRefAportes) btnRefAportes.addEventListener('click', cargarYRenderAportes)
       </div>
 
       <p style="font-size: 12px; color: #7a654f; margin: 8px 0 0 0; text-align: right;">
-        ⚡ Telar: 1–113 | Lote: hasta 8 caracteres alfanuméricos
+        ⚡ Telar: 1–999 (999 = Paro General) | Lote: hasta 8 caracteres
       </p>
     </div>
 
@@ -2708,128 +2402,143 @@ if (btnRefAportes) btnRefAportes.addEventListener('click', cargarYRenderAportes)
   const contenedor = document.getElementById('contenedor-filas');
   const btnAgregar = document.getElementById('agregar-fila');
 
-  // ============================================================
-  // 🔷 NUEVO: Autocompletado de lote/estilo por número de telar
-  // ============================================================
+  // ---------- Helper: mensajes inline ----------
+  function showFormMessage(msg, type) {
+    var el = document.getElementById('mensaje-confirmacion');
+    if (!el) { alert(msg); return; }
+    el.textContent = msg;
+    el.style.display = 'block';
+    if (type === 'error') {
+      el.style.background = '#f8d7da';
+      el.style.color = '#721c24';
+      el.style.border = '1px solid #f5c6cb';
+    } else {
+      el.style.background = '#d4edda';
+      el.style.color = '#155724';
+      el.style.border = '1px solid #b7d7c2';
+      setTimeout(function() { el.style.display = 'none'; }, 6000);
+    }
+  }
+
+  // ---------- Autocompletado ----------
   function buscarDatosTelar(numTelar) {
     if (!numTelar) return null;
+    if (String(numTelar) === '999') return null;
     if (typeof allData === 'undefined' || !allData || Object.keys(allData).length === 0) return null;
 
     var telarStr = String(numTelar).padStart(2, '0');
-
-    // Ordenar fechas de la más reciente a la más antigua
     var fechas = Object.keys(allData).sort(function(a, b) {
-      var pa = a.split('/').map(Number);
-      var pb = b.split('/').map(Number);
-      var da = new Date(pa[2], pa[1] - 1, pa[0]).getTime();
-      var db = new Date(pb[2], pb[1] - 1, pb[0]).getTime();
-      return db - da;
+      var pa = a.split('/').map(Number), pb = b.split('/').map(Number);
+      return new Date(pb[2], pb[1]-1, pb[0]) - new Date(pa[2], pa[1]-1, pa[0]);
     });
-
     for (var i = 0; i < fechas.length; i++) {
       var datos = (allData[fechas[i]] && allData[fechas[i]].datos) || [];
       var regs = datos.filter(function(d) { return d['Telar'] === telarStr; });
       if (regs.length > 0) {
-        // Tomar el último registro del día (el más reciente dentro de ese día)
         var r = regs[regs.length - 1];
-        return {
-          lote:   (r['Lote']   || '').trim(),
-          estilo: (r['Estilo'] || '').trim()
-        };
+        return { lote: (r['Lote']||'').trim(), estilo: (r['Estilo']||'').trim() };
       }
     }
     return null;
   }
 
-  function conectarAutocompletado(fila) {
-    var inputTelar  = fila.querySelector('input[name="telar[]"]');
-    var inputLote   = fila.querySelector('input[name="lote[]"]');
-    var inputEstilo = fila.querySelector('input[name="estilo[]"]');
-    if (!inputTelar || !inputLote || !inputEstilo) return;
-    if (inputTelar.dataset.autocompletado === '1') return; // evitar duplicar listeners
-    inputTelar.dataset.autocompletado = '1';
-
-    var timerAuto = null;
-
-    function autocompletar() {
-      var numTelar = inputTelar.value.trim();
-      if (!numTelar) return;
-      var info = buscarDatosTelar(numTelar);
-      if (!info) return;
-      if (info.lote)   inputLote.value   = info.lote;
-      if (info.estilo) inputEstilo.value = info.estilo;
+  // ---------- Paro General ----------
+  function setParoGeneral(fila, activar) {
+    var iT = fila.querySelector('input[name="telar[]"]');
+    var iL = fila.querySelector('input[name="lote[]"]');
+    var iE = fila.querySelector('input[name="estilo[]"]');
+    if (!iT || !iL || !iE) return;
+    if (activar) {
+      iT.value = '999';
+      iL.value = 'GENERAL';
+      iE.value = 'PARO GENERAL';
+      iT.readOnly = iL.readOnly = iE.readOnly = true;
+      iT.style.backgroundColor = iL.style.backgroundColor = iE.style.backgroundColor = '#f0f0f0';
+    } else {
+      iT.readOnly = iL.readOnly = iE.readOnly = false;
+      iT.style.backgroundColor = iL.style.backgroundColor = iE.style.backgroundColor = '';
+      if (iT.value === '999') iT.value = '';
+      if (iL.value === 'GENERAL') iL.value = '';
+      if (iE.value === 'PARO GENERAL') iE.value = '';
     }
-
-    // Real-time: 400 ms después de dejar de teclear
-    inputTelar.addEventListener('input', function() {
-      clearTimeout(timerAuto);
-      timerAuto = setTimeout(autocompletar, 400);
-    });
-
-    // Al salir del campo (tab, click, etc.) fuerza la búsqueda
-    inputTelar.addEventListener('change', function() {
-      clearTimeout(timerAuto);
-      autocompletar();
-    });
   }
 
-  // Conectar la fila inicial que ya está en el HTML
-  document.querySelectorAll('#contenedor-filas .fila-aporte').forEach(conectarAutocompletado);
+  function conectarFila(fila) {
+    var inputTelar = fila.querySelector('input[name="telar[]"]');
+    var inputLote = fila.querySelector('input[name="lote[]"]');
+    var inputEstilo = fila.querySelector('input[name="estilo[]"]');
+    var selectClase = fila.querySelector('select[name="clase[]"]');
+    if (!inputTelar || !inputLote || !inputEstilo || !selectClase) return;
+    if (inputTelar.dataset.auto === '1') return;
+    inputTelar.dataset.auto = '1';
 
-  // ============================================================
-  // Fecha de ocurrencia
-  // ============================================================
-  var fechaOcurrenciaInput = document.getElementById('fecha-ocurrencia');
+    var timer = null;
+    function autocompletar() {
+      var num = inputTelar.value.trim();
+      if (!num || inputTelar.readOnly) return;
+      var info = buscarDatosTelar(num);
+      if (!info) return;
+      if (info.lote) inputLote.value = info.lote;
+      if (info.estilo) inputEstilo.value = info.estilo;
+    }
+    inputTelar.addEventListener('input', function() {
+      clearTimeout(timer); timer = setTimeout(autocompletar, 400);
+    });
+    inputTelar.addEventListener('change', function() {
+      clearTimeout(timer); autocompletar();
+    });
+
+    if (selectClase.dataset.paroConectado !== '1') {
+      selectClase.dataset.paroConectado = '1';
+      selectClase.addEventListener('change', function() {
+        setParoGeneral(fila, selectClase.value === 'Paro General');
+      });
+    }
+  }
+
+  document.querySelectorAll('#contenedor-filas .fila-aporte').forEach(conectarFila);
+
+  // ---------- Fecha de ocurrencia ----------
+  var fechaInput = document.getElementById('fecha-ocurrencia');
   function setFechaHoy() {
-    if (!fechaOcurrenciaInput) return;
-    var hoyISO = new Date().toISOString().slice(0, 10);
-    fechaOcurrenciaInput.max = hoyISO;
-    fechaOcurrenciaInput.value = hoyISO;
+    if (!fechaInput) return;
+    var hoy = new Date().toISOString().slice(0, 10);
+    fechaInput.max = hoy;
+    fechaInput.value = hoy;
   }
   setFechaHoy();
 
-  // ============================================================
-  // Crear nueva fila (con autocompletado conectado)
-  // ============================================================
+  // ---------- Crear nueva fila ----------
   function crearFila() {
     const fila = document.createElement('div');
     fila.className = 'fila-aporte';
     fila.style.cssText = 'display: grid; grid-template-columns: 70px 100px 1fr 1fr 1.8fr 30px; gap: 8px; margin-bottom: 10px; padding: 10px; background: #faf8f5; border-radius: 8px; align-items: center;';
     fila.innerHTML = `
-      <div>
-        <label style="font-size: 11px; font-weight: 600; color: #4a3520; display: block; margin-bottom: 2px;">Telar</label>
-        <input type="number" name="telar[]" min="1" max="113" placeholder="001" required
-               style="width: 100%; padding: 6px 4px; border: 2px solid #d4c8b8; border-radius: 6px; font-size: 14px; text-align: center; box-sizing: border-box;" />
-      </div>
-      <div>
-        <label style="font-size: 11px; font-weight: 600; color: #4a3520; display: block; margin-bottom: 2px;">Lote</label>
+      <div><label style="font-size:11px;font-weight:600;color:#4a3520;display:block;margin-bottom:2px;">Telar</label>
+        <input type="number" name="telar[]" min="1" max="999" placeholder="001" required
+          style="width:100%;padding:6px 4px;border:2px solid #d4c8b8;border-radius:6px;font-size:14px;text-align:center;box-sizing:border-box;" /></div>
+      <div><label style="font-size:11px;font-weight:600;color:#4a3520;display:block;margin-bottom:2px;">Lote</label>
         <input type="text" name="lote[]" maxlength="8" placeholder="LOTE-001" required
-               style="width: 100%; padding: 6px 4px; border: 2px solid #d4c8b8; border-radius: 6px; font-size: 14px; text-align: center; box-sizing: border-box; text-transform: uppercase;" />
-      </div>
-      <div>
-        <label style="font-size: 11px; font-weight: 600; color: #4a3520; display: block; margin-bottom: 2px;">Estilo</label>
+          style="width:100%;padding:6px 4px;border:2px solid #d4c8b8;border-radius:6px;font-size:14px;text-align:center;box-sizing:border-box;text-transform:uppercase;" /></div>
+      <div><label style="font-size:11px;font-weight:600;color:#4a3520;display:block;margin-bottom:2px;">Estilo</label>
         <input type="text" name="estilo[]" placeholder="Ej: Arandano, Alexa..." required
-               style="width: 100%; padding: 6px 8px; border: 2px solid #d4c8b8; border-radius: 6px; font-size: 14px; box-sizing: border-box;" />
-      </div>
-      <div>
-        <label style="font-size: 11px; font-weight: 600; color: #4a3520; display: block; margin-bottom: 2px;">Clase</label>
-        <select name="clase[]" required style="width: 100%; padding: 6px 4px; border: 2px solid #d4c8b8; border-radius: 6px; font-size: 14px; background: white; box-sizing: border-box;">
+          style="width:100%;padding:6px 8px;border:2px solid #d4c8b8;border-radius:6px;font-size:14px;box-sizing:border-box;" /></div>
+      <div><label style="font-size:11px;font-weight:600;color:#4a3520;display:block;margin-bottom:2px;">Clase</label>
+        <select name="clase[]" required style="width:100%;padding:6px 4px;border:2px solid #d4c8b8;border-radius:6px;font-size:14px;background:white;box-sizing:border-box;">
           <option value="">Seleccionar</option>
           <option value="Calidad">Calidad</option>
           <option value="Mantenimiento">Mantenimiento</option>
           <option value="Producción">Producción</option>
           <option value="Planificación">Planificación</option>
           <option value="Auditoría">Auditoría</option>
-        </select>
-      </div>
-      <div>
-        <label style="font-size: 11px; font-weight: 600; color: #4a3520; display: block; margin-bottom: 2px;">Descripción</label>
-        <input type="text" name="descripcion[]" placeholder="Ej: Técnica de tejido, material, observación..." required
-               style="width: 100%; padding: 6px 8px; border: 2px solid #d4c8b8; border-radius: 6px; font-size: 14px; box-sizing: border-box;" />
-      </div>
-      <div style="text-align: center;">
+          <option value="Paro General">Paro General</option>
+        </select></div>
+      <div><label style="font-size:11px;font-weight:600;color:#4a3520;display:block;margin-bottom:2px;">Descripción</label>
+        <input type="text" name="descripcion[]" placeholder="Ej: Técnica, material, observación..." required
+          style="width:100%;padding:6px 8px;border:2px solid #d4c8b8;border-radius:6px;font-size:14px;box-sizing:border-box;" /></div>
+      <div style="text-align:center;">
         <button type="button" class="eliminar-fila"
-                style="background: #dc3545; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; font-size: 14px; font-weight: bold; cursor: pointer; line-height: 1;">✕</button>
+          style="background:#dc3545;color:white;border:none;border-radius:50%;width:24px;height:24px;font-size:14px;font-weight:bold;cursor:pointer;line-height:1;">✕</button>
       </div>
     `;
     return fila;
@@ -2838,7 +2547,7 @@ if (btnRefAportes) btnRefAportes.addEventListener('click', cargarYRenderAportes)
   btnAgregar.addEventListener('click', function() {
     const nueva = crearFila();
     contenedor.appendChild(nueva);
-    conectarAutocompletado(nueva); // 🔷 conectar autocompletado a la nueva fila
+    conectarFila(nueva);
     nueva.querySelector('.eliminar-fila').addEventListener('click', function() {
       if (contenedor.children.length > 1) contenedor.removeChild(nueva);
       else alert('Debe haber al menos una línea de aporte.');
@@ -2853,68 +2562,67 @@ if (btnRefAportes) btnRefAportes.addEventListener('click', cargarYRenderAportes)
     });
   });
 
-  // ============================================================
-  // Envío al backend
-  // ============================================================
+  // ---------- Submit ----------
   document.getElementById('form-aportes').addEventListener('submit', async function(e) {
     e.preventDefault();
-    const nombre = document.getElementById('nombre-aportante').value.trim();
-    if (!nombre) { alert('Falta tu identificación.'); return; }
-
-    // Validar fecha de ocurrencia
-    const fechaOcurrencia = document.getElementById('fecha-ocurrencia').value;
-    if (!fechaOcurrencia) {
-      alert('Selecciona la fecha de ocurrencia del evento.');
-      return;
-    }
-    if (fechaOcurrencia > new Date().toISOString().slice(0, 10)) {
-      alert('La fecha de ocurrencia no puede ser futura.');
-      return;
-    }
-
-    const filas = document.querySelectorAll('#contenedor-filas .fila-aporte');
-    const aportes = [];
-    for (const f of filas) {
-      const telar = f.querySelector('input[name="telar[]"]').value;
-      const lote = f.querySelector('input[name="lote[]"]').value;
-      const estilo = f.querySelector('input[name="estilo[]"]').value;
-      const clase = f.querySelector('select[name="clase[]"]').value;
-      const descripcion = f.querySelector('input[name="descripcion[]"]').value;
-      if (!telar || !lote || !estilo || !clase || !descripcion) {
-        alert('Completa todas las filas antes de enviar.');
-        return;
-      }
-      aportes.push({ telar, lote, estilo, clase, descripcion });
-    }
-
-    const btn = this.querySelector('button[type="submit"]');
-    btn.disabled = true;
-    const txtOrig = btn.textContent;
-    btn.textContent = '⏳ Enviando...';
-
     try {
-      const res = await fetch('/.netlify/functions/aporte', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nombre, aportes, fecha: fechaOcurrencia })
-      });
-      if (!res.ok) throw new Error(await res.text());
+      const nombre = document.getElementById('nombre-aportante').value.trim();
+      if (!nombre) { showFormMessage('⚠️ Falta tu identificación.', 'error'); return; }
 
-      document.getElementById('mensaje-confirmacion').style.display = 'block';
-      this.reset();
-      while (contenedor.children.length > 1) contenedor.removeChild(contenedor.lastChild);
-      setFechaHoy();
+      if (!fechaInput) { showFormMessage('⚠️ Campo de fecha no encontrado.', 'error'); return; }
+      const fechaOcurrencia = fechaInput.value;
+      if (!fechaOcurrencia) { showFormMessage('⚠️ Selecciona la fecha de ocurrencia.', 'error'); return; }
+      if (fechaOcurrencia > new Date().toISOString().slice(0, 10)) {
+        showFormMessage('⚠️ La fecha de ocurrencia no puede ser futura.', 'error'); return;
+      }
 
-      if (typeof cargarYRenderAportes === 'function') cargarYRenderAportes();
+      const filas = document.querySelectorAll('#contenedor-filas .fila-aporte');
+      const aportes = [];
+      for (const f of filas) {
+        const telar = f.querySelector('input[name="telar[]"]').value;
+        const lote = f.querySelector('input[name="lote[]"]').value;
+        const estilo = f.querySelector('input[name="estilo[]"]').value;
+        const clase = f.querySelector('select[name="clase[]"]').value;
+        const descripcion = f.querySelector('input[name="descripcion[]"]').value;
+        if (!telar || !lote || !estilo || !clase || !descripcion) {
+          showFormMessage('⚠️ Completa todas las filas antes de enviar.', 'error'); return;
+        }
+        aportes.push({ telar, lote, estilo, clase, descripcion });
+      }
 
-      setTimeout(() => {
-        document.getElementById('mensaje-confirmacion').style.display = 'none';
-      }, 6000);
+      const btn = this.querySelector('button[type="submit"]');
+      btn.disabled = true;
+      const txtOrig = btn.textContent;
+      btn.textContent = '⏳ Enviando...';
+      console.log('📤 Enviando aporte:', { nombre, fecha: fechaOcurrencia, aportes });
+
+      try {
+        const res = await fetch('/.netlify/functions/aporte', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nombre, aportes, fecha: fechaOcurrencia })
+        });
+        if (!res.ok) {
+          const txt = await res.text();
+          throw new Error('Servidor ' + res.status + ': ' + txt.slice(0, 200));
+        }
+        const data = await res.json();
+        console.log('✅ Respuesta:', data);
+        showFormMessage('✅ ¡Gracias! Se registraron ' + aportes.length + ' línea(s).', 'ok');
+        this.reset();
+        while (contenedor.children.length > 1) contenedor.removeChild(contenedor.lastChild);
+        setFechaHoy();
+        if (typeof cargarYRenderAportes === 'function') cargarYRenderAportes();
+      } catch (err) {
+        console.error('❌ Error en fetch:', err);
+        showFormMessage('❌ Error al enviar: ' + err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = txtOrig;
+      }
     } catch (err) {
-      alert('❌ Error al enviar: ' + err.message);
-    } finally {
-      btn.disabled = false;
-      btn.textContent = txtOrig;
+      console.error('❌ Error general en submit:', err);
+      showFormMessage('❌ Error inesperado: ' + err.message, 'error');
     }
   });
 })();
