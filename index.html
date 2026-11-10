@@ -2015,20 +2015,36 @@ function renderOEE(){
   var DISP_POND = SUM_TEL>0 ? SUM_ACT/SUM_TEL : 0;
 
   // 🔷 MC primero, para aprovechar los días hábiles que reporta
-var MC = oeeMonteCarlo(OEE_DIAS, ultimoDia, diasMes, 10000, true);
+
+  
+ var MC = oeeMonteCarlo(OEE_DIAS, ultimoDia, diasMes, 10000, true);
 
 var DIAS_RESTANTES = MC.diasRestantes || Math.max(1, diasMes - ultimoDia);
 var FALTANTE = OEE_CFG.metaMes - TOTAL_METROS;
 var RITMO_REQUERIDO = FALTANTE / DIAS_RESTANTES;
 
 var ULT7 = OEE_DIAS.slice(-7);
+var RITMO_7D = ULT7.reduce((s,d)=>s+d.metros,0)/ULT7.length;
 
-  
-  var RITMO_7D = ULT7.reduce((s,d)=>s+d.metros,0)/ULT7.length;
-  var PTS_FULL = OEE_DIAS.map(d=>({x:d.dia,y:d.metros}));
-  var REG = oeeRegresion(PTS_FULL);
-  var RITMO_TEND = (MC.p50 - TOTAL_METROS) / DIAS_RESTANTES;
-  var PROY_CONSERV = TOTAL_METROS + RITMO_7D*DIAS_RESTANTES;
+// 🔷 REG alineado con la MC (índice secuencial + outliers filtrados)
+var nUsados = MC.diasUsados || (ultimoDia);
+var ultimoIdx = nUsados - 1;
+var REG = { a: MC.a, b: MC.b, sigma: MC.sigma };
+
+// 🔷 Helpers para traducir día calendario ↔ índice secuencial
+function diaAIndice(diaCal) {
+  // índice aproximado para un día calendario, asumiendo misma densidad
+  if (!nUsados || !ultimoDia) return 0;
+  return Math.round((diaCal / ultimoDia) * ultimoIdx);
+}
+
+function prediccionPorDia(diaCal) {
+  var idx = diaAIndice(diaCal);
+  return Math.max(0, REG.a + REG.b * idx);
+}
+
+var RITMO_TEND = (MC.p50 - TOTAL_METROS) / DIAS_RESTANTES;
+var PROY_CONSERV = TOTAL_METROS + RITMO_7D * DIAS_RESTANTES;
 
   document.getElementById('oeeBadges').innerHTML =
     '<div class="oee-badge">Periodo <b>' + OEE_DIAS[0].fechaRaw + ' – ' + OEE_DIAS[OEE_DIAS.length-1].fechaRaw + '</b></div>' +
@@ -2158,8 +2174,10 @@ function renderOEECharts(MC, REG, TOTAL_METROS, ultimoDia, diasMes, DIAS_RESTANT
   // 12.1 Producción diaria
   var labels = Array.from({length:diasMes},(_,i)=>String(i+1));
   var realArr = labels.map((_,i)=>{ var d=OEE_DIAS.find(x=>x.dia===i+1); return d?d.metros:null; });
-  var proyArr = labels.map((_,i)=>{ var dia=i+1; if(dia<=ultimoDia) return null; return Math.max(0, REG.a+REG.b*dia); });
-  var tendArr = labels.map((_,i)=>Math.max(0, REG.a+REG.b*(i+1)));
+ 
+  
+ var proyArr = labels.map((_,i)=>{ var dia=i+1; if(dia<=ultimoDia) return null; return prediccionPorDia(dia); });
+var tendArr = labels.map((_,i)=>prediccionPorDia(i+1));
 
   oeeCharts.prod = new Chart(document.getElementById('oeeChProd'), {
     type:'bar',
@@ -2184,8 +2202,8 @@ function renderOEECharts(MC, REG, TOTAL_METROS, ultimoDia, diasMes, DIAS_RESTANT
   // 12.2 Acumulado
   var acum=0;
   var acumReal = labels.map((_,i)=>{ var d=OEE_DIAS.find(x=>x.dia===i+1); if(d){acum+=d.metros; return acum;} return null; });
-  var acumProy = labels.map((_,i)=>{ var dia=i+1; if(dia<ultimoDia) return null; if(dia===ultimoDia) return TOTAL_METROS; var t=TOTAL_METROS; for(var d=ultimoDia+1;d<=dia;d++) t+=Math.max(0,REG.a+REG.b*d); return t; });
-  var metaLineal = labels.map((_,i)=>OEE_CFG.metaMes/diasMes*(i+1));
+
+ var acumProy = labels.map((_,i)=>{ var dia=i+1; if(dia<ultimoDia) return null; if(dia===ultimoDia) return TOTAL_METROS; var t=TOTAL_METROS; for(var d=ultimoDia+1;d<=dia;d++) t+=prediccionPorDia(d); return t; });
 
   oeeCharts.acum = new Chart(document.getElementById('oeeChAcum'), {
     type:'line',
