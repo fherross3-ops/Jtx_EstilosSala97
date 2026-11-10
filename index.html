@@ -1898,8 +1898,8 @@ function oeeMonteCarlo(dias, diaCorte, diasMes, sims, devolverMuestras){
   // 2) Opción A — Filtro de outliers por mediana (±4x)
   var metrosArr = diasHastaCorte.map(function(d){ return d.metros; }).sort(function(a,b){ return a-b; });
   var mediana = metrosArr[Math.floor(metrosArr.length / 2)];
-  var LIMITE_ALTO = mediana * 4;
-  var LIMITE_BAJO = mediana / 4;
+  var LIMITE_ALTO = mediana * 6;
+  var LIMITE_BAJO = mediana / 6;
 
   var diasValidos = diasHastaCorte.filter(function(d){
     if (d.dia === diaCorte) return true;  // preservar el día de corte
@@ -1950,7 +1950,8 @@ function oeeMonteCarlo(dias, diaCorte, diasMes, sims, devolverMuestras){
     var t = acum;
     for (var k = 1; k <= diasRestantes; k++) {
       var pred = reg.a + reg.b * (ultimoIdx + k);
-      t += Math.max(0, pred + oeeGauss() * reg.sigma);
+      var sigmaAjustada = Math.max(reg.sigma, pred * 0.08);  // mínimo 8% del valor predicho
+t += Math.max(0, pred + oeeGauss() * sigmaAjustada);
     }
     totales[s] = t;
     if (t >= OEE_CFG.metaMes) exitos++;
@@ -2026,7 +2027,7 @@ var ULT7 = OEE_DIAS.slice(-7);
   var RITMO_7D = ULT7.reduce((s,d)=>s+d.metros,0)/ULT7.length;
   var PTS_FULL = OEE_DIAS.map(d=>({x:d.dia,y:d.metros}));
   var REG = oeeRegresion(PTS_FULL);
-  var RITMO_TEND = REG.a + REG.b*(ultimoDia + 1 + DIAS_RESTANTES/2);
+  var RITMO_TEND = (MC.p50 - TOTAL_METROS) / DIAS_RESTANTES;
   var PROY_CONSERV = TOTAL_METROS + RITMO_7D*DIAS_RESTANTES;
 
   document.getElementById('oeeBadges').innerHTML =
