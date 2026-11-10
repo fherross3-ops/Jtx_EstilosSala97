@@ -924,7 +924,6 @@ function resumenRapido(datos, fecha, fileName, contrato, timestamp) {
     if (d['Usar Capa 2'] === 'Sí' && d['Telar'] && d['Telar'] !== 'S/N') telaresActivosSet.add(d['Telar']);
   });
 
-  // 🔷 FIX: faltaba esta línea
   var telaresActivosCount = telaresActivosSet.size;
 
   var totalTelares = telaresContrato ? telaresContrato.length : TELARES_UNIVERSO.length;
@@ -1889,20 +1888,18 @@ function oeeGauss(){var u=0,v=0;while(u===0)u=Math.random();while(v===0)v=Math.r
 function oeeMonteCarlo(dias, diaCorte, diasMes, sims, devolverMuestras){
   sims = sims || 10000;
 
-  // 1) Días con datos hasta el corte
   var diasHastaCorte = dias.filter(function(d){ return d.dia <= diaCorte; });
   if (diasHastaCorte.length < 4) {
     return { prob:0, p10:0, p50:0, p90:0, muestras:[], diasRestantes: 0 };
   }
 
-  // 2) Opción A — Filtro de outliers por mediana (±4x)
   var metrosArr = diasHastaCorte.map(function(d){ return d.metros; }).sort(function(a,b){ return a-b; });
   var mediana = metrosArr[Math.floor(metrosArr.length / 2)];
   var LIMITE_ALTO = mediana * 6;
   var LIMITE_BAJO = mediana / 6;
 
   var diasValidos = diasHastaCorte.filter(function(d){
-    if (d.dia === diaCorte) return true;  // preservar el día de corte
+    if (d.dia === diaCorte) return true;
     return d.metros >= LIMITE_BAJO && d.metros <= LIMITE_ALTO;
   });
 
@@ -1913,14 +1910,11 @@ function oeeMonteCarlo(dias, diaCorte, diasMes, sims, devolverMuestras){
     console.warn('📊 MC: ' + excluidos + ' día(s) excluido(s) como outlier(s). Mediana: ' + Math.round(mediana));
   }
 
-  // 3) Opción C — Regresión con índice SECUENCIAL (0,1,2,...)
   var pts = diasValidos.map(function(d, i){ return { x: i, y: d.metros }; });
   var reg = oeeRegresion(pts);
 
-  // 4) Acumulado real (usa TODOS los días hasta corte, incluidos outliers)
   var acum = diasHastaCorte.reduce(function(s,d){ return s + d.metros; }, 0);
 
-  // 5) Opción B — Días restantes (detecta si hay fines de semana en los datos)
   var ultimaFecha = diasHastaCorte[diasHastaCorte.length - 1].fecha;
   var partes = ultimaFecha.split('-');
   var anio = parseInt(partes[0], 10);
@@ -1942,7 +1936,6 @@ function oeeMonteCarlo(dias, diaCorte, diasMes, sims, devolverMuestras){
   }
   if (diasRestantes === 0) diasRestantes = Math.max(1, diasMes - diaCorte);
 
-  // 6) Monte Carlo con índice secuencial
   var ultimoIdx = pts.length - 1;
   var exitos = 0;
   var totales = new Array(sims);
@@ -1950,15 +1943,14 @@ function oeeMonteCarlo(dias, diaCorte, diasMes, sims, devolverMuestras){
     var t = acum;
     for (var k = 1; k <= diasRestantes; k++) {
       var pred = reg.a + reg.b * (ultimoIdx + k);
-      var sigmaAjustada = Math.max(reg.sigma, pred * 0.08);  // mínimo 8% del valor predicho
-t += Math.max(0, pred + oeeGauss() * sigmaAjustada);
+      var sigmaAjustada = Math.max(reg.sigma, pred * 0.08);
+      t += Math.max(0, pred + oeeGauss() * sigmaAjustada);
     }
     totales[s] = t;
     if (t >= OEE_CFG.metaMes) exitos++;
   }
   totales.sort(function(x,y){ return x - y; });
 
-  // 7) Diagnóstico en consola
   console.log('📊 MC diagnóstico:', {
     medianaMetros: Math.round(mediana),
     limiteAlto: Math.round(LIMITE_ALTO),
@@ -2014,26 +2006,21 @@ function renderOEE(){
   var SUM_TEL = OEE_DIAS.reduce((s,d)=>s+d.totalTel,0);
   var DISP_POND = SUM_TEL>0 ? SUM_ACT/SUM_TEL : 0;
 
-  // 🔷 MC primero, para aprovechar los días hábiles que reporta
+  var MC = oeeMonteCarlo(OEE_DIAS, ultimoDia, diasMes, 10000, true);
 
-  
- var MC = oeeMonteCarlo(OEE_DIAS, ultimoDia, diasMes, 10000, true);
+  var DIAS_RESTANTES = MC.diasRestantes || Math.max(1, diasMes - ultimoDia);
+  var FALTANTE = OEE_CFG.metaMes - TOTAL_METROS;
+  var RITMO_REQUERIDO = FALTANTE / DIAS_RESTANTES;
 
-var DIAS_RESTANTES = MC.diasRestantes || Math.max(1, diasMes - ultimoDia);
-var FALTANTE = OEE_CFG.metaMes - TOTAL_METROS;
-var RITMO_REQUERIDO = FALTANTE / DIAS_RESTANTES;
+  var ULT7 = OEE_DIAS.slice(-7);
+  var RITMO_7D = ULT7.reduce((s,d)=>s+d.metros,0)/ULT7.length;
 
-var ULT7 = OEE_DIAS.slice(-7);
-var RITMO_7D = ULT7.reduce((s,d)=>s+d.metros,0)/ULT7.length;
+  var nUsados = MC.diasUsados || (ultimoDia);
+  var ultimoIdx = nUsados - 1;
+  var REG = { a: MC.a, b: MC.b, sigma: MC.sigma };
 
-// 🔷 REG alineado con la MC (índice secuencial + outliers filtrados)
-// 🔷 REG alineado con la MC (índice secuencial + outliers filtrados)
-var nUsados = MC.diasUsados || (ultimoDia);
-var ultimoIdx = nUsados - 1;
-var REG = { a: MC.a, b: MC.b, sigma: MC.sigma };
-
-var RITMO_TEND = (MC.p50 - TOTAL_METROS) / DIAS_RESTANTES;
-var PROY_CONSERV = TOTAL_METROS + RITMO_7D * DIAS_RESTANTES;
+  var RITMO_TEND = (MC.p50 - TOTAL_METROS) / DIAS_RESTANTES;
+  var PROY_CONSERV = TOTAL_METROS + RITMO_7D * DIAS_RESTANTES;
 
   document.getElementById('oeeBadges').innerHTML =
     '<div class="oee-badge">Periodo <b>' + OEE_DIAS[0].fechaRaw + ' – ' + OEE_DIAS[OEE_DIAS.length-1].fechaRaw + '</b></div>' +
@@ -2138,13 +2125,15 @@ var PROY_CONSERV = TOTAL_METROS + RITMO_7D * DIAS_RESTANTES;
   document.getElementById('oeeInsights').innerHTML = insights.map(i=>
     '<div class="oee-ins '+i.cls+'"><h4>'+i.title+'</h4><p>'+i.text+'</p></div>').join('');
 
-renderOEECharts(MC, REG, TOTAL_METROS, ultimoDia, diasMes, DIAS_RESTANTES, RITMO_7D, nUsados, ultimoIdx);
+  // 🔷 Se pasan nUsados y ultimoIdx como parámetros para evitar problemas de scope
+  renderOEECharts(MC, REG, TOTAL_METROS, ultimoDia, diasMes, DIAS_RESTANTES, RITMO_7D, nUsados, ultimoIdx);
+}
 
 function renderOEECharts(MC, REG, TOTAL_METROS, ultimoDia, diasMes, DIAS_RESTANTES, RITMO_7D, nUsados, ultimoIdx){
   Object.values(oeeCharts).forEach(c=>{if(c)c.destroy();});
   oeeCharts = {};
 
-  // 🔷 Helpers locales (se perdieron cuando los movimos a renderOEE)
+  // 🔷 Helpers locales (dentro de esta función para tener acceso a REG, nUsados, ultimoIdx, ultimoDia)
   function diaAIndice(diaCal) {
     if (!nUsados || !ultimoDia) return 0;
     return Math.round((diaCal / ultimoDia) * ultimoIdx);
@@ -2162,7 +2151,6 @@ function renderOEECharts(MC, REG, TOTAL_METROS, ultimoDia, diasMes, DIAS_RESTANT
   };
   var LEG = { labels:{ color:'#8ba0c0', boxWidth:11, boxHeight:11, usePointStyle:true, pointStyle:'circle', padding:14 } };
 
-  // 🔷 Desactivar datalabels en gráficas OEE
   var NO_LABELS = { display: false };
 
   var fmtMiles = function(v){ return v==null ? '' : Number(v).toLocaleString('es-ES',{maximumFractionDigits:0}); };
@@ -2173,10 +2161,8 @@ function renderOEECharts(MC, REG, TOTAL_METROS, ultimoDia, diasMes, DIAS_RESTANT
   // 12.1 Producción diaria
   var labels = Array.from({length:diasMes},(_,i)=>String(i+1));
   var realArr = labels.map((_,i)=>{ var d=OEE_DIAS.find(x=>x.dia===i+1); return d?d.metros:null; });
- 
-  
- var proyArr = labels.map((_,i)=>{ var dia=i+1; if(dia<=ultimoDia) return null; return prediccionPorDia(dia); });
-var tendArr = labels.map((_,i)=>prediccionPorDia(i+1));
+  var proyArr = labels.map((_,i)=>{ var dia=i+1; if(dia<=ultimoDia) return null; return prediccionPorDia(dia); });
+  var tendArr = labels.map((_,i)=>prediccionPorDia(i+1));
 
   oeeCharts.prod = new Chart(document.getElementById('oeeChProd'), {
     type:'bar',
@@ -2199,10 +2185,8 @@ var tendArr = labels.map((_,i)=>prediccionPorDia(i+1));
   });
 
   // 12.2 Acumulado
-   // 12.2 Acumulado
   var acum=0;
   var acumReal = labels.map((_,i)=>{ var d=OEE_DIAS.find(x=>x.dia===i+1); if(d){acum+=d.metros; return acum;} return null; });
-
   var acumProy = labels.map((_,i)=>{ var dia=i+1; if(dia<ultimoDia) return null; if(dia===ultimoDia) return TOTAL_METROS; var t=TOTAL_METROS; for(var d=ultimoDia+1;d<=dia;d++) t+=prediccionPorDia(d); return t; });
 
   // 🔷 Línea de meta lineal (se había borrado)
@@ -2266,7 +2250,7 @@ var tendArr = labels.map((_,i)=>prediccionPorDia(i+1));
     }
   });
 
-  // 12.5 Probabilidad (OCULTA con .oee-hidden; no se crea si no es visible)
+  // 12.5 Probabilidad (oculta)
   var canvasProb = document.getElementById('oeeChProb');
   if (canvasProb && canvasProb.offsetParent !== null) {
     var probLabels=[], probData=[];
@@ -2292,7 +2276,7 @@ var tendArr = labels.map((_,i)=>prediccionPorDia(i+1));
     });
   }
 
-  // 12.6 Histograma (OCULTO con .oee-hidden; no se crea si no es visible)
+  // 12.6 Histograma (oculto)
   var canvasHist = document.getElementById('oeeChHist');
   var muestras = MC.muestras;
   if (canvasHist && canvasHist.offsetParent !== null && muestras && muestras.length) {
@@ -2514,7 +2498,6 @@ if (btnRefAportes) btnRefAportes.addEventListener('click', cargarYRenderAportes)
   const contenedor = document.getElementById('contenedor-filas');
   const btnAgregar = document.getElementById('agregar-fila');
 
-  // ---------- Helper: mensajes inline ----------
   function showFormMessage(msg, type) {
     var el = document.getElementById('mensaje-confirmacion');
     if (!el) { alert(msg); return; }
@@ -2532,7 +2515,6 @@ if (btnRefAportes) btnRefAportes.addEventListener('click', cargarYRenderAportes)
     }
   }
 
-  // ---------- Autocompletado ----------
   function buscarDatosTelar(numTelar) {
     if (!numTelar) return null;
     if (String(numTelar) === '999') return null;
@@ -2554,7 +2536,6 @@ if (btnRefAportes) btnRefAportes.addEventListener('click', cargarYRenderAportes)
     return null;
   }
 
-  // ---------- Paro General ----------
   function setParoGeneral(fila, activar) {
     var iT = fila.querySelector('input[name="telar[]"]');
     var iL = fila.querySelector('input[name="lote[]"]');
@@ -2610,7 +2591,6 @@ if (btnRefAportes) btnRefAportes.addEventListener('click', cargarYRenderAportes)
 
   document.querySelectorAll('#contenedor-filas .fila-aporte').forEach(conectarFila);
 
-  // ---------- Fecha de ocurrencia ----------
   var fechaInput = document.getElementById('fecha-ocurrencia');
   function setFechaHoy() {
     if (!fechaInput) return;
@@ -2620,7 +2600,6 @@ if (btnRefAportes) btnRefAportes.addEventListener('click', cargarYRenderAportes)
   }
   setFechaHoy();
 
-  // ---------- Crear nueva fila ----------
   function crearFila() {
     const fila = document.createElement('div');
     fila.className = 'fila-aporte';
@@ -2674,7 +2653,6 @@ if (btnRefAportes) btnRefAportes.addEventListener('click', cargarYRenderAportes)
     });
   });
 
-  // ---------- Submit ----------
   document.getElementById('form-aportes').addEventListener('submit', async function(e) {
     e.preventDefault();
     try {
