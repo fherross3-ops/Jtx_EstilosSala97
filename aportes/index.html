@@ -54,6 +54,7 @@ tr:hover td{background:var(--glass)}
 .tag-Producción,.tag-Produccion{background:rgba(16,185,129,.2);color:#34d399}
 .tag-Planificación,.tag-Planificacion{background:rgba(139,92,246,.2);color:#a78bfa}
 .tag-Auditoría,.tag-Auditoria{background:rgba(236,72,153,.2);color:#f472b6}
+.tag-Paro.General,.tag-Paro-General{background:rgba(239,68,68,.2);color:#f87171}
 .status{margin-bottom:20px;padding:12px 16px;border-radius:10px;font-size:13px;border-left:4px solid var(--accent);background:var(--glass);max-height:280px;overflow-y:auto}
 .status.ok{border-color:var(--ok)}
 .status.err{border-color:var(--bad)}
@@ -66,10 +67,6 @@ tr:hover td{background:var(--glass)}
   ← Volver al Maestro
 </a>
 
-
-
-
-  
 <div class="wrap">
   <header>
     <div>
@@ -120,8 +117,10 @@ tr:hover td{background:var(--glass)}
 
 <script>
 const CONFIG = {
-  csvUrl: './historial.csv',
-  fallbackUrl: 'https://raw.githubusercontent.com/fherross3-ops/jtx_estilos97/main/aportes/historial.csv',
+  // 🔷 Ruta ABSOLUTA: no depende de si la URL termina en "/aportes" o "/aportes/"
+  csvUrl: '/aportes/historial.csv',
+  // 🔷 Repo correcto como fallback
+  fallbackUrl: 'https://raw.githubusercontent.com/fherross3-ops/Jtx_EstilosSala97/main/aportes/historial.csv',
   claseColors: {
     'Calidad':       '#3b82f6',
     'Mantenimiento': '#f59e0b',
@@ -130,7 +129,8 @@ const CONFIG = {
     'Planificación': '#8b5cf6',
     'Planificacion': '#8b5cf6',
     'Auditoría':     '#ec4899',
-    'Auditoria':     '#ec4899'
+    'Auditoria':     '#ec4899',
+    'Paro General':  '#ef4444'
   },
   palette: ['#6366f1','#06b6d4','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#84cc16','#f97316','#14b8a6','#a855f7','#eab308']
 };
@@ -176,26 +176,39 @@ async function cargarDatos(){
 
   try {
     const res = await fetch(CONFIG.csvUrl + '?t=' + Date.now(), { cache: 'no-store' });
+    console.log('📥 Fetch CSV:', CONFIG.csvUrl, '· status:', res.status);
     if (res.ok){
       const txt = await res.text();
+      console.log('📄 CSV recibido:', txt.length, 'bytes');
       const parsed = Papa.parse(txt, { header: true, skipEmptyLines: true, transformHeader: h => h.trim() });
       if (parsed.data && parsed.data.length) rows = parsed.data;
+      console.log('📊 Filas parseadas:', rows ? rows.length : 0);
+    } else {
+      console.warn('⚠️ CSV respondió', res.status, '·', res.statusText);
     }
-  } catch(e){ console.warn('CSV directo falló:', e); }
+  } catch(e){ console.error('❌ CSV directo falló:', e); }
 
   if (!rows){
     try {
       const res = await fetch(CONFIG.fallbackUrl + '?t=' + Date.now(), { cache: 'no-store' });
+      console.log('📥 Fetch fallback:', CONFIG.fallbackUrl, '· status:', res.status);
       if (res.ok){
         const txt = await res.text();
         const parsed = Papa.parse(txt, { header: true, skipEmptyLines: true, transformHeader: h => h.trim() });
         if (parsed.data && parsed.data.length) rows = parsed.data;
       }
-    } catch(e){ console.warn('Fallback falló:', e); }
+    } catch(e){ console.error('❌ Fallback falló:', e); }
   }
 
   if (!rows || !rows.length){
-    setStatus('❌ No se pudieron cargar los aportes. Verifica la ruta del CSV.', 'err');
+    setStatus(
+      '❌ No se pudieron cargar los aportes.<br>' +
+      '<b>URL intentada:</b> <code>' + CONFIG.csvUrl + '</code><br>' +
+      '<b>Fallback:</b> <code>' + CONFIG.fallbackUrl + '</code><br>' +
+      '<small>Abre F12 → Network y revisa si el CSV devuelve 200 o 404.</small>',
+      'err'
+    );
+    console.error('Fallo carga CSV. Primario:', CONFIG.csvUrl, '· Fallback:', CONFIG.fallbackUrl);
     return;
   }
 
