@@ -522,25 +522,42 @@ tr:hover td { background: var(--glass); }
       <div id="tab-alertas" class="tab-content"><div id="alertasContent"></div></div>
 
       <div id="tab-aportes" class="tab-content">
-  ... (contenido actual sin tocar) ...
-  <div id="aportesContent"></div>
-</div>
+        <div class="filtros-telar">
+          <label>Telar:</label>
+          <input type="text" id="ap-filtro-telar" placeholder="Ej: 12" style="width:80px;">
+          <label>Clase:</label>
+          <select id="ap-filtro-clase">
+            <option value="">Todas</option>
+            <option value="Calidad">Calidad</option>
+            <option value="Mantenimiento">Mantenimiento</option>
+            <option value="Producción">Producción</option>
+            <option value="Planificación">Planificación</option>
+            <option value="Auditoría">Auditoría</option>
+            <option value="Paro General">Paro General</option>
+          </select>
+          <label>Desde:</label>
+          <input type="date" id="ap-filtro-desde">
+          <button class="btn-filtrar" id="ap-btn-refresh">🔄 Recargar</button>
+          <span id="ap-filtro-info" style="font-size:12px;color:var(--text-secondary);"></span>
+        </div>
+        <div id="aportesContent"></div>
+      </div>
 
-<!-- 🔷 NUEVA PESTAÑA: Dashboard de análisis de aportes -->
-<div id="tab-aportehistorico" class="tab-content">
-  <div style="display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap;">
-    <button class="btn btn-secondary" id="btnRecargarAporteHist">🔄 Recargar</button>
-    <a class="btn btn-secondary" href="/aportes/" target="_blank" rel="noopener">↗️ Abrir en pestaña nueva</a>
-    <span style="font-size:12px;color:var(--text-secondary);">Dashboard de análisis de aportes e intervenciones</span>
-  </div>
-  <iframe id="iframeAporteHist"
-          src="about:blank"
-          style="width:100%;height:calc(100vh - 280px);min-height:800px;border:1px solid var(--border);border-radius:12px;background:white;"
-          loading="lazy">
-  </iframe>
-</div>
+      <!-- 🔷 NUEVA PESTAÑA: Dashboard de análisis de aportes -->
+      <div id="tab-aportehistorico" class="tab-content">
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap;">
+          <button class="btn btn-secondary" id="btnRecargarAporteHist" type="button">🔄 Recargar</button>
+          <a class="btn btn-secondary" href="/aportes/" target="_blank" rel="noopener" style="text-decoration:none;display:inline-block;">↗️ Abrir en pestaña nueva</a>
+          <span style="font-size:12px;color:var(--text-secondary);">Dashboard de análisis de aportes e intervenciones</span>
+        </div>
+        <iframe id="iframeAporteHist"
+                src="about:blank"
+                style="width:100%;height:calc(100vh - 280px);min-height:800px;border:1px solid var(--border);border-radius:12px;background:var(--bg-primary);"
+                referrerpolicy="no-referrer-when-downgrade">
+        </iframe>
+      </div>
 
-<div id="tab-valid" class="tab-content"><div class="table-wrapper" id="tableValid"></div></div>
+      <div id="tab-valid" class="tab-content"><div class="table-wrapper" id="tableValid"></div></div>
 
     </div>
   </div>
@@ -722,19 +739,6 @@ function showStatus(msg, type) {
 }
 function getBenchmark() { return parseFloat(document.getElementById('benchmarkInput').value) || 5; }
 
-var btnRecAporteHist = document.getElementById('btnRecargarAporteHist');
-if (btnRecAporteHist) {
-  btnRecAporteHist.addEventListener('click', function() {
-    var iframe = document.getElementById('iframeAporteHist');
-    if (iframe) iframe.src = '/aportes/?_=' + Date.now();  // bust de caché
-  });
-}
-
-
-
-
-
-  
 function initTheme() {
   var saved = localStorage.getItem('tejeduria_theme') || 'dark';
   document.documentElement.setAttribute('data-theme', saved);
@@ -1811,16 +1815,16 @@ document.querySelectorAll('.tab').forEach(function(tab) {
       if (!aportesCache.length) cargarYRenderAportes();
       else renderAportes();
     }
-
-if (tabId === 'aportehistorico') {
-  var iframe = document.getElementById('iframeAporteHist');
-  if (iframe && iframe.dataset.loaded !== '1') {
-    iframe.src = '/aportes/';
-    iframe.dataset.loaded = '1';
-  }
-}
-
-        if (tabId === 'telar' && currentFecha) {
+    // 🔷 NUEVA: cargar iframe de análisis de aportes (lazy, solo la primera vez)
+    if (tabId === 'aportehistorico') {
+      var iframe = document.getElementById('iframeAporteHist');
+      if (iframe && iframe.dataset.loaded !== '1') {
+        iframe.dataset.loaded = '1';
+        iframe.src = '/aportes/?v=' + Date.now();
+        console.log('🖼️ Cargando iframe de aportes...');
+      }
+    }
+    if (tabId === 'telar' && currentFecha) {
       var telarSelect = document.getElementById('filtro-telar');
       if (telarSelect && telarSelect.value === 'all' &&
           document.getElementById('filtro-fecha-desde').value === '' &&
@@ -1834,6 +1838,15 @@ if (tabId === 'aportehistorico') {
     }
   });
 });
+
+// 🔷 Botón de recarga del iframe
+var btnRecAporteHist = document.getElementById('btnRecargarAporteHist');
+if (btnRecAporteHist) {
+  btnRecAporteHist.addEventListener('click', function() {
+    var iframe = document.getElementById('iframeAporteHist');
+    if (iframe) iframe.src = '/aportes/?v=' + Date.now();
+  });
+}
 
 initTheme();
 setTimeout(function() { cargarArchivosPrecargados(); }, 500);
@@ -2146,7 +2159,6 @@ function renderOEE(){
   document.getElementById('oeeInsights').innerHTML = insights.map(i=>
     '<div class="oee-ins '+i.cls+'"><h4>'+i.title+'</h4><p>'+i.text+'</p></div>').join('');
 
-  // 🔷 Se pasan nUsados y ultimoIdx como parámetros para evitar problemas de scope
   renderOEECharts(MC, REG, TOTAL_METROS, ultimoDia, diasMes, DIAS_RESTANTES, RITMO_7D, nUsados, ultimoIdx);
 }
 
@@ -2154,7 +2166,7 @@ function renderOEECharts(MC, REG, TOTAL_METROS, ultimoDia, diasMes, DIAS_RESTANT
   Object.values(oeeCharts).forEach(c=>{if(c)c.destroy();});
   oeeCharts = {};
 
-  // 🔷 Helpers locales (dentro de esta función para tener acceso a REG, nUsados, ultimoIdx, ultimoDia)
+  // 🔷 Helpers locales
   function diaAIndice(diaCal) {
     if (!nUsados || !ultimoDia) return 0;
     return Math.round((diaCal / ultimoDia) * ultimoIdx);
@@ -2179,7 +2191,6 @@ function renderOEECharts(MC, REG, TOTAL_METROS, ultimoDia, diasMes, DIAS_RESTANT
   var fmt2 = function(v){ return v==null ? '' : Number(v).toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2}); };
   var fmtPct = function(v){ return v==null ? '' : Number(v).toLocaleString('es-ES',{minimumFractionDigits:1,maximumFractionDigits:1})+'%'; };
 
-  // 12.1 Producción diaria
   var labels = Array.from({length:diasMes},(_,i)=>String(i+1));
   var realArr = labels.map((_,i)=>{ var d=OEE_DIAS.find(x=>x.dia===i+1); return d?d.metros:null; });
   var proyArr = labels.map((_,i)=>{ var dia=i+1; if(dia<=ultimoDia) return null; return prediccionPorDia(dia); });
@@ -2205,12 +2216,9 @@ function renderOEECharts(MC, REG, TOTAL_METROS, ultimoDia, diasMes, DIAS_RESTANT
     }
   });
 
-  // 12.2 Acumulado
   var acum=0;
   var acumReal = labels.map((_,i)=>{ var d=OEE_DIAS.find(x=>x.dia===i+1); if(d){acum+=d.metros; return acum;} return null; });
   var acumProy = labels.map((_,i)=>{ var dia=i+1; if(dia<ultimoDia) return null; if(dia===ultimoDia) return TOTAL_METROS; var t=TOTAL_METROS; for(var d=ultimoDia+1;d<=dia;d++) t+=prediccionPorDia(d); return t; });
-
-  // 🔷 Línea de meta lineal (se había borrado)
   var metaLineal = labels.map((_,i)=> OEE_CFG.metaMes/diasMes*(i+1));
 
   oeeCharts.acum = new Chart(document.getElementById('oeeChAcum'), {
@@ -2233,7 +2241,6 @@ function renderOEECharts(MC, REG, TOTAL_METROS, ultimoDia, diasMes, DIAS_RESTANT
     }
   });
 
-  // 12.3 OEE componentes
   var labelsDias = OEE_DIAS.map(d=>d.dia+'/'+d.fecha.split('-')[2]);
   oeeCharts.oee = new Chart(document.getElementById('oeeChOEE'), {
     type:'line',
@@ -2253,7 +2260,6 @@ function renderOEECharts(MC, REG, TOTAL_METROS, ultimoDia, diasMes, DIAS_RESTANT
     }
   });
 
-  // 12.4 Índice
   oeeCharts.idx = new Chart(document.getElementById('oeeChIdx'), {
     type:'line',
     data:{ labels: labelsDias, datasets:[
@@ -2271,7 +2277,6 @@ function renderOEECharts(MC, REG, TOTAL_METROS, ultimoDia, diasMes, DIAS_RESTANT
     }
   });
 
-  // 12.5 Probabilidad (oculta)
   var canvasProb = document.getElementById('oeeChProb');
   if (canvasProb && canvasProb.offsetParent !== null) {
     var probLabels=[], probData=[];
@@ -2297,7 +2302,6 @@ function renderOEECharts(MC, REG, TOTAL_METROS, ultimoDia, diasMes, DIAS_RESTANT
     });
   }
 
-  // 12.6 Histograma (oculto)
   var canvasHist = document.getElementById('oeeChHist');
   var muestras = MC.muestras;
   if (canvasHist && canvasHist.offsetParent !== null && muestras && muestras.length) {
