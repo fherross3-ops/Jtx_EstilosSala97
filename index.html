@@ -384,6 +384,7 @@ tr:hover td { background: var(--glass); }
         <div class="tab" data-tab="oee">📊 OEE</div>
         <div class="tab" data-tab="alertas">⚠️ Alertas</div>
         <div class="tab" data-tab="aportes">📝 Aportes</div>
+        <div class="tab" data-tab="aportehistorico">📊 Análisis Aportes</div>
         <div class="tab" data-tab="valid">✅ Validación</div>
       </div>
 
@@ -521,27 +522,25 @@ tr:hover td { background: var(--glass); }
       <div id="tab-alertas" class="tab-content"><div id="alertasContent"></div></div>
 
       <div id="tab-aportes" class="tab-content">
-        <div class="filtros-telar">
-          <label>Telar:</label>
-          <input type="text" id="ap-filtro-telar" placeholder="Ej: 12" style="width:80px;">
-          <label>Clase:</label>
-          <select id="ap-filtro-clase">
-            <option value="">Todas</option>
-            <option value="Calidad">Calidad</option>
-            <option value="Mantenimiento">Mantenimiento</option>
-            <option value="Producción">Producción</option>
-            <option value="Planificación">Planificación</option>
-            <option value="Auditoría">Auditoría</option>
-            <option value="Paro General">Paro General</option>
-          </select>
-          <label>Desde:</label>
-          <input type="date" id="ap-filtro-desde">
-          <button class="btn-filtrar" id="ap-btn-refresh">🔄 Recargar</button>
-          <span id="ap-filtro-info" style="font-size:12px;color:var(--text-secondary);"></span>
-        </div>
-        <div id="aportesContent"></div>
-      </div>
-      <div id="tab-valid" class="tab-content"><div class="table-wrapper" id="tableValid"></div></div>
+  ... (contenido actual sin tocar) ...
+  <div id="aportesContent"></div>
+</div>
+
+<!-- 🔷 NUEVA PESTAÑA: Dashboard de análisis de aportes -->
+<div id="tab-aportehistorico" class="tab-content">
+  <div style="display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap;">
+    <button class="btn btn-secondary" id="btnRecargarAporteHist">🔄 Recargar</button>
+    <a class="btn btn-secondary" href="/aportes/" target="_blank" rel="noopener">↗️ Abrir en pestaña nueva</a>
+    <span style="font-size:12px;color:var(--text-secondary);">Dashboard de análisis de aportes e intervenciones</span>
+  </div>
+  <iframe id="iframeAporteHist"
+          src="about:blank"
+          style="width:100%;height:calc(100vh - 280px);min-height:800px;border:1px solid var(--border);border-radius:12px;background:white;"
+          loading="lazy">
+  </iframe>
+</div>
+
+<div id="tab-valid" class="tab-content"><div class="table-wrapper" id="tableValid"></div></div>
 
     </div>
   </div>
@@ -723,6 +722,19 @@ function showStatus(msg, type) {
 }
 function getBenchmark() { return parseFloat(document.getElementById('benchmarkInput').value) || 5; }
 
+var btnRecAporteHist = document.getElementById('btnRecargarAporteHist');
+if (btnRecAporteHist) {
+  btnRecAporteHist.addEventListener('click', function() {
+    var iframe = document.getElementById('iframeAporteHist');
+    if (iframe) iframe.src = '/aportes/?_=' + Date.now();  // bust de caché
+  });
+}
+
+
+
+
+
+  
 function initTheme() {
   var saved = localStorage.getItem('tejeduria_theme') || 'dark';
   document.documentElement.setAttribute('data-theme', saved);
@@ -1799,7 +1811,16 @@ document.querySelectorAll('.tab').forEach(function(tab) {
       if (!aportesCache.length) cargarYRenderAportes();
       else renderAportes();
     }
-    if (tabId === 'telar' && currentFecha) {
+
+if (tabId === 'aportehistorico') {
+  var iframe = document.getElementById('iframeAporteHist');
+  if (iframe && iframe.dataset.loaded !== '1') {
+    iframe.src = '/aportes/';
+    iframe.dataset.loaded = '1';
+  }
+}
+
+        if (tabId === 'telar' && currentFecha) {
       var telarSelect = document.getElementById('filtro-telar');
       if (telarSelect && telarSelect.value === 'all' &&
           document.getElementById('filtro-fecha-desde').value === '' &&
