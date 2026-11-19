@@ -456,7 +456,7 @@ tr:hover td { background: var(--glass); }
               <div class="oee-chart-box"><canvas id="oeeChProd"></canvas></div>
             </div>
             <div class="oee-card">
-              <h3>Avance acumulado vs. meta mensual</h3>
+              <h3>Avance acumulado vs.  mensual</h3>
               <p class="oee-hint">Real, proyección y ritmo lineal requerido</p>
               <div class="oee-chart-box"><canvas id="oeeChAcum"></canvas></div>
             </div>
@@ -467,7 +467,7 @@ tr:hover td { background: var(--glass); }
             </div>
             <div class="oee-card">
               <h3>Índice de paros (trama + urdimbre)</h3>
-              <p class="oee-hint">Por 100,000 pasadas · Meta &lt; 5.0</p>
+              <p class="oee-hint">Por 100,000 pasadas ·  &lt; 5.0</p>
               <div class="oee-chart-box"><canvas id="oeeChIdx"></canvas></div>
             </div>
             <div class="oee-card oee-hidden">
@@ -1855,7 +1855,7 @@ setTimeout(function() { cargarArchivosPrecargados(); }, 500);
 // 📊 OEE — Integración con datos del dashboard
 // ============================================================
 const OEE_CFG = {
-  metaMes: 130000,
+  metaMes: 500000,
   metaIndice: 4.3,
   ritmoEstandar: 380,
   umbral: { oee:{v:60,a:40}, disp:{v:85,a:70}, rend:{v:80,a:60}, cal:{v:98,a:95} }
